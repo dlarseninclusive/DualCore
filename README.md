@@ -1,6 +1,8 @@
 # DualCore
 
-A dual multimode filter VST3 plugin with extensive modulation capabilities, built with JUCE. Inspired by the Sherman Filterbank.
+A dual multimode filter VST3 plugin featuring 6 classic analog filter emulations with extensive modulation capabilities. Built with JUCE.
+
+Inspired by legendary hardware including the Sherman Filterbank, Moog ladder filters, Roland TB-303, Korg MS-20, Steiner-Parker Synthacon, and classic 80s polysynth OTA designs.
 
 ![DualCore Screenshot](docs/screenshot.png)
 
