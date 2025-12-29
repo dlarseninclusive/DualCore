@@ -367,51 +367,51 @@ void DualCoreAudioProcessorEditor::paint(juce::Graphics& g)
     };
 
     // Row 1: Input, Filter 1, Filter 2, FM, Drive, Routing
-    drawSection(10, 50, 130, 180, "INPUT");
-    drawSection(150, 50, 190, 180, "FILTER 1");
-    drawSection(350, 50, 190, 180, "FILTER 2");
-    drawSection(550, 50, 70, 180, "FM");
-    drawSection(630, 50, 90, 180, "DRIVE");
-    drawSection(730, 50, 160, 180, "ROUTING");
+    drawSection(10, 50, 130, 185, "INPUT");
+    drawSection(150, 50, 190, 185, "FILTER 1");
+    drawSection(350, 50, 190, 185, "FILTER 2");
+    drawSection(550, 50, 80, 185, "FM");
+    drawSection(640, 50, 100, 185, "DRIVE");
+    drawSection(750, 50, 160, 185, "ROUTING");
 
     // Row 2: ADSR, LFO1, LFO2, AM
-    drawSection(10, 240, 300, 160, "ENVELOPE");
-    drawSection(320, 240, 170, 160, "LFO1");
-    drawSection(500, 240, 170, 160, "LFO2");
-    drawSection(680, 240, 210, 160, "AM");
+    drawSection(10, 245, 320, 170, "ENVELOPE");
+    drawSection(340, 245, 175, 170, "LFO1");
+    drawSection(525, 245, 175, 170, "LFO2");
+    drawSection(710, 245, 200, 170, "AM");
 
     // Row 3: Modulation Matrix
-    drawSection(10, 410, 880, 110, "MODULATION MATRIX");
+    drawSection(10, 425, 900, 115, "MODULATION MATRIX");
 
-    // Row 4: Meters
-    drawSection(10, 530, 880, 80, "OUTPUT");
+    // Row 4: Output with meters and filter display
+    drawSection(10, 550, 900, 120, "OUTPUT");
 
     // Draw meters
-    float meterY = 565.0f * s;
-    float meterH = 30.0f * s;
+    float meterY = 580.0f * s;
+    float meterH = 35.0f * s;
 
     // Input meters
     g.setColour(juce::Colour(0xff333355));
-    g.fillRect(30.0f * s, meterY, 200.0f * s, meterH);
+    g.fillRect(30.0f * s, meterY, 180.0f * s, meterH);
 
     float inLevel = juce::jmax(inputLevelL, inputLevelR);
     g.setColour(juce::Colour(0xff00cc66));
-    g.fillRect(30.0f * s, meterY, 200.0f * s * juce::jlimit(0.0f, 1.0f, inLevel), meterH);
+    g.fillRect(30.0f * s, meterY, 180.0f * s * juce::jlimit(0.0f, 1.0f, inLevel), meterH);
 
     g.setColour(juce::Colours::white.withAlpha(0.6f));
     g.setFont(juce::FontOptions(10.0f * s));
-    g.drawText("IN", 30.0f * s, meterY + meterH + 2.0f * s, 200.0f * s, 14.0f * s, juce::Justification::centred);
+    g.drawText("IN", 30.0f * s, meterY + meterH + 4.0f * s, 180.0f * s, 14.0f * s, juce::Justification::centred);
 
     // Output meters
     g.setColour(juce::Colour(0xff333355));
-    g.fillRect(280.0f * s, meterY, 200.0f * s, meterH);
+    g.fillRect(230.0f * s, meterY, 180.0f * s, meterH);
 
     float outLevel = juce::jmax(outputLevelL, outputLevelR);
     g.setColour(juce::Colour(0xff00aaff));
-    g.fillRect(280.0f * s, meterY, 200.0f * s * juce::jlimit(0.0f, 1.0f, outLevel), meterH);
+    g.fillRect(230.0f * s, meterY, 180.0f * s * juce::jlimit(0.0f, 1.0f, outLevel), meterH);
 
     g.setColour(juce::Colours::white.withAlpha(0.6f));
-    g.drawText("OUT", 280.0f * s, meterY + meterH + 2.0f * s, 200.0f * s, 14.0f * s, juce::Justification::centred);
+    g.drawText("OUT", 230.0f * s, meterY + meterH + 4.0f * s, 180.0f * s, 14.0f * s, juce::Justification::centred);
 }
 
 void DualCoreAudioProcessorEditor::resized()
@@ -422,14 +422,14 @@ void DualCoreAudioProcessorEditor::resized()
     int labelH = static_cast<int>(14 * s);
     int comboH = static_cast<int>(22 * s);
     int buttonH = static_cast<int>(24 * s);
-    int margin = static_cast<int>(8 * s);
+    int margin = static_cast<int>(10 * s);
 
     // Header area
-    int headerY = static_cast<int>(8 * s);
+    int headerY = static_cast<int>(10 * s);
     presetBox.setBounds(static_cast<int>(10 * s), headerY, static_cast<int>(180 * s), static_cast<int>(24 * s));
     savePresetButton.setBounds(static_cast<int>(195 * s), headerY, static_cast<int>(50 * s), static_cast<int>(24 * s));
-    zoomOutButton.setBounds(static_cast<int>(820 * s), headerY, static_cast<int>(30 * s), static_cast<int>(24 * s));
-    zoomInButton.setBounds(static_cast<int>(855 * s), headerY, static_cast<int>(30 * s), static_cast<int>(24 * s));
+    zoomOutButton.setBounds(static_cast<int>(850 * s), headerY, static_cast<int>(30 * s), static_cast<int>(24 * s));
+    zoomInButton.setBounds(static_cast<int>(885 * s), headerY, static_cast<int>(30 * s), static_cast<int>(24 * s));
 
     // Row 1 Y position
     int row1Y = static_cast<int>(70 * s);
@@ -441,8 +441,8 @@ void DualCoreAudioProcessorEditor::resized()
 
     int toggleY = row1Y + labelH + knob + margin;
     hiBoostButton.setBounds(x, toggleY, static_cast<int>(110 * s), buttonH);
-    hiCutButton.setBounds(x, toggleY + buttonH + 2, static_cast<int>(110 * s), buttonH);
-    limiterButton.setBounds(x, toggleY + (buttonH + 2) * 2, static_cast<int>(110 * s), buttonH);
+    hiCutButton.setBounds(x, toggleY + buttonH + 4, static_cast<int>(110 * s), buttonH);
+    limiterButton.setBounds(x, toggleY + (buttonH + 4) * 2, static_cast<int>(110 * s), buttonH);
 
     // Filter 1 section
     x = static_cast<int>(160 * s);
@@ -467,28 +467,28 @@ void DualCoreAudioProcessorEditor::resized()
     filter2ModeBox.setBounds(static_cast<int>(360 * s), row1Y + labelH + knob + margin, static_cast<int>(170 * s), comboH);
 
     // FM section
-    x = static_cast<int>(560 * s);
+    x = static_cast<int>(565 * s);
     fmAmountLabel.setBounds(x, row1Y, knob, labelH);
     fmAmountSlider.setBounds(x, row1Y + labelH, knob, knob);
 
     // Drive section
-    x = static_cast<int>(640 * s);
+    x = static_cast<int>(655 * s);
     driveAmountLabel.setBounds(x, row1Y, knob, labelH);
     driveAmountSlider.setBounds(x, row1Y + labelH, knob, knob);
 
     int driveComboY = row1Y + labelH + knob + margin;
-    driveTypeBox.setBounds(static_cast<int>(640 * s), driveComboY, static_cast<int>(70 * s), comboH);
-    drivePrePostButton.setBounds(static_cast<int>(640 * s), driveComboY + comboH + 4, static_cast<int>(70 * s), buttonH);
+    driveTypeBox.setBounds(static_cast<int>(655 * s), driveComboY, static_cast<int>(80 * s), comboH);
+    drivePrePostButton.setBounds(static_cast<int>(655 * s), driveComboY + comboH + 4, static_cast<int>(80 * s), buttonH);
 
     // Routing section
-    x = static_cast<int>(740 * s);
-    routingButton.setBounds(x, row1Y, static_cast<int>(100 * s), buttonH);
+    x = static_cast<int>(760 * s);
+    routingButton.setBounds(x, row1Y, static_cast<int>(140 * s), buttonH);
 
-    mixLabel.setBounds(x, row1Y + buttonH + margin, knob, labelH);
-    mixSlider.setBounds(x, row1Y + buttonH + margin + labelH, knob, knob);
+    mixLabel.setBounds(x + static_cast<int>(35 * s), row1Y + buttonH + margin, knob, labelH);
+    mixSlider.setBounds(x + static_cast<int>(35 * s), row1Y + buttonH + margin + labelH, knob, knob);
 
     // Row 2 Y position
-    int row2Y = static_cast<int>(260 * s);
+    int row2Y = static_cast<int>(265 * s);
 
     // Envelope section
     x = static_cast<int>(20 * s);
@@ -516,7 +516,7 @@ void DualCoreAudioProcessorEditor::resized()
     envSensSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
     // LFO1 section
-    x = static_cast<int>(330 * s);
+    x = static_cast<int>(355 * s);
     lfoRateLabel.setBounds(x, row2Y, smallKnob, labelH);
     lfoRateSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
@@ -525,15 +525,15 @@ void DualCoreAudioProcessorEditor::resized()
     lfoDepthSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
     int comboY = row2Y + labelH + smallKnob + margin;
-    lfoWaveBox.setBounds(static_cast<int>(330 * s), comboY, static_cast<int>(75 * s), comboH);
-    lfoTargetBox.setBounds(static_cast<int>(410 * s), comboY, static_cast<int>(60 * s), comboH);
+    lfoWaveBox.setBounds(static_cast<int>(355 * s), comboY, static_cast<int>(75 * s), comboH);
+    lfoTargetBox.setBounds(static_cast<int>(435 * s), comboY, static_cast<int>(60 * s), comboH);
 
-    int syncY = comboY + comboH + 4;
-    lfoSyncButton.setBounds(static_cast<int>(330 * s), syncY, static_cast<int>(50 * s), buttonH);
-    lfoDivBox.setBounds(static_cast<int>(385 * s), syncY, static_cast<int>(80 * s), comboH);
+    int syncY = comboY + comboH + 6;
+    lfoSyncButton.setBounds(static_cast<int>(355 * s), syncY, static_cast<int>(55 * s), buttonH);
+    lfoDivBox.setBounds(static_cast<int>(415 * s), syncY, static_cast<int>(75 * s), comboH);
 
     // LFO2 section
-    x = static_cast<int>(510 * s);
+    x = static_cast<int>(540 * s);
     lfo2RateLabel.setBounds(x, row2Y, smallKnob, labelH);
     lfo2RateSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
@@ -541,13 +541,13 @@ void DualCoreAudioProcessorEditor::resized()
     lfo2DepthLabel.setBounds(x, row2Y, smallKnob, labelH);
     lfo2DepthSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
-    lfo2WaveBox.setBounds(static_cast<int>(510 * s), comboY, static_cast<int>(140 * s), comboH);
+    lfo2WaveBox.setBounds(static_cast<int>(540 * s), comboY, static_cast<int>(140 * s), comboH);
 
-    lfo2SyncButton.setBounds(static_cast<int>(510 * s), syncY, static_cast<int>(50 * s), buttonH);
-    lfo2DivBox.setBounds(static_cast<int>(565 * s), syncY, static_cast<int>(80 * s), comboH);
+    lfo2SyncButton.setBounds(static_cast<int>(540 * s), syncY, static_cast<int>(55 * s), buttonH);
+    lfo2DivBox.setBounds(static_cast<int>(600 * s), syncY, static_cast<int>(75 * s), comboH);
 
     // AM section
-    x = static_cast<int>(700 * s);
+    x = static_cast<int>(725 * s);
     amAmountLabel.setBounds(x, row2Y, smallKnob, labelH);
     amAmountSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
@@ -560,13 +560,13 @@ void DualCoreAudioProcessorEditor::resized()
     amReleaseSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
     // Row 3: Modulation Matrix
-    int row3Y = static_cast<int>(430 * s);
-    int slotWidth = static_cast<int>(280 * s);
-    int slotSpacing = static_cast<int>(10 * s);
-    int srcComboW = static_cast<int>(55 * s);
-    int dstComboW = static_cast<int>(70 * s);
+    int row3Y = static_cast<int>(448 * s);
+    int slotWidth = static_cast<int>(290 * s);
+    int slotSpacing = static_cast<int>(8 * s);
+    int srcComboW = static_cast<int>(60 * s);
+    int dstComboW = static_cast<int>(75 * s);
     int amtSliderW = static_cast<int>(130 * s);
-    int slotH = static_cast<int>(26 * s);
+    int slotH = static_cast<int>(28 * s);
 
     for (int i = 0; i < 6; ++i)
     {
@@ -574,17 +574,17 @@ void DualCoreAudioProcessorEditor::resized()
         int row = i / 3;
 
         int slotX = static_cast<int>(20 * s) + col * (slotWidth + slotSpacing);
-        int slotY = row3Y + row * (slotH + static_cast<int>(6 * s));
+        int slotY = row3Y + row * (slotH + static_cast<int>(8 * s));
 
         auto& slot = modSlotUIs[i];
         slot.sourceBox.setBounds(slotX, slotY, srcComboW, comboH);
-        slot.destBox.setBounds(slotX + srcComboW + 4, slotY, dstComboW, comboH);
-        slot.amountSlider.setBounds(slotX + srcComboW + dstComboW + 8, slotY, amtSliderW, comboH);
+        slot.destBox.setBounds(slotX + srcComboW + 5, slotY, dstComboW, comboH);
+        slot.amountSlider.setBounds(slotX + srcComboW + dstComboW + 10, slotY, amtSliderW, comboH);
     }
 
     // Row 4: Output section - filter response display
-    int row4Y = static_cast<int>(540 * s);
-    filterResponseDisplay.setBounds(static_cast<int>(500 * s), row4Y, static_cast<int>(380 * s), static_cast<int>(60 * s));
+    filterResponseDisplay.setBounds(static_cast<int>(430 * s), static_cast<int>(565 * s),
+                                    static_cast<int>(470 * s), static_cast<int>(90 * s));
 }
 
 void DualCoreAudioProcessorEditor::refreshPresetList()

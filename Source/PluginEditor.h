@@ -26,8 +26,8 @@ private:
     DualCoreLookAndFeel customLookAndFeel;
 
     // Base dimensions
-    static constexpr int BASE_WIDTH = 900;
-    static constexpr int BASE_HEIGHT = 720;
+    static constexpr int BASE_WIDTH = 920;
+    static constexpr int BASE_HEIGHT = 780;
     float currentScale = 1.0f;
 
     // === Input Section ===
