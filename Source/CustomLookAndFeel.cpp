@@ -29,7 +29,12 @@ DualCoreLookAndFeel::DualCoreLookAndFeel()
     setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     setColour(juce::TextButton::textColourOnId, accentColour);
 
-    setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.8f));
+    setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.95f));
+
+    // Slider text box colors
+    setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+    setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xff1a1a30));
+    setColour(juce::Slider::textBoxOutlineColourId, juce::Colour(0xff3a3a5a));
 }
 
 void DualCoreLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
@@ -147,7 +152,7 @@ void DualCoreLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton
                                             bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown)
 {
     auto bounds = button.getLocalBounds().toFloat();
-    auto fontSize = juce::jmin(15.0f, bounds.getHeight() * 0.6f);
+    auto fontSize = juce::jmin(16.0f * currentScale, bounds.getHeight() * 0.65f);
 
     // Checkbox area
     float boxSize = bounds.getHeight() * 0.7f;
@@ -172,7 +177,7 @@ void DualCoreLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton
     }
 
     // Text
-    g.setColour(button.getToggleState() ? accentColour : juce::Colours::white.withAlpha(0.8f));
+    g.setColour(button.getToggleState() ? accentColour : juce::Colours::white.withAlpha(0.9f));
     g.setFont(juce::FontOptions(fontSize));
 
     auto textBounds = bounds.withLeft(boxX + boxSize + 6.0f);
@@ -229,35 +234,40 @@ void DualCoreLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& 
 
 juce::Font DualCoreLookAndFeel::getComboBoxFont(juce::ComboBox& box)
 {
-    return juce::FontOptions(juce::jmin(16.0f * currentScale, static_cast<float>(box.getHeight()) * 0.75f));
+    return juce::FontOptions(juce::jmin(18.0f * currentScale, static_cast<float>(box.getHeight()) * 0.8f));
 }
 
 juce::Font DualCoreLookAndFeel::getLabelFont(juce::Label& label)
 {
-    return juce::FontOptions(juce::jmin(14.0f * currentScale, static_cast<float>(label.getHeight()) * 0.95f));
+    return juce::FontOptions(juce::jmin(16.0f * currentScale, static_cast<float>(label.getHeight()) * 0.95f));
 }
 
 juce::Font DualCoreLookAndFeel::getPopupMenuFont()
 {
-    return juce::FontOptions(16.0f * currentScale);
+    return juce::FontOptions(18.0f * currentScale);
 }
 
 juce::Font DualCoreLookAndFeel::getTextButtonFont(juce::TextButton& button, int buttonHeight)
 {
-    return juce::FontOptions(juce::jmin(15.0f * currentScale, static_cast<float>(buttonHeight) * 0.65f));
+    return juce::FontOptions(juce::jmin(17.0f * currentScale, static_cast<float>(buttonHeight) * 0.7f));
 }
 
 juce::Font DualCoreLookAndFeel::getAlertWindowTitleFont()
 {
-    return juce::FontOptions(20.0f * currentScale).withStyle("Bold");
+    return juce::FontOptions(22.0f * currentScale).withStyle("Bold");
 }
 
 juce::Font DualCoreLookAndFeel::getAlertWindowMessageFont()
 {
-    return juce::FontOptions(16.0f * currentScale);
+    return juce::FontOptions(18.0f * currentScale);
 }
 
 juce::Font DualCoreLookAndFeel::getAlertWindowFont()
+{
+    return juce::FontOptions(18.0f * currentScale);
+}
+
+juce::Font DualCoreLookAndFeel::getSliderPopupFont(juce::Slider&)
 {
     return juce::FontOptions(16.0f * currentScale);
 }

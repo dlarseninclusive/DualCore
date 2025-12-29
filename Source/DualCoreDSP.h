@@ -55,6 +55,16 @@ public:
         Fuzz           // Aggressive fuzz/distortion
     };
 
+    enum class FilterType
+    {
+        SVF = 0,       // Clean state-variable filter (default)
+        Ladder,        // Moog-style transistor ladder - warm, fat
+        Diode,         // Diode ladder (303-style) - acidic, sharp
+        MS20,          // Korg MS-20 style - aggressive, screaming
+        Steiner,       // Steiner-Parker - vocal, rubbery
+        OTA            // OTA-based (80s polysynth) - punchy, snappy
+    };
+
     // Modulation Matrix
     enum class ModSource
     {
@@ -105,11 +115,13 @@ public:
     void setFilter1Frequency(float freqHz);
     void setFilter1Resonance(float resonance);  // 0.0 to 1.0
     void setFilter1Mode(FilterMode mode);
+    void setFilter1Type(FilterType type);
 
     // === Filter 2 Parameters ===
     void setFilter2Frequency(float freqHz);
     void setFilter2Resonance(float resonance);
     void setFilter2Mode(FilterMode mode);
+    void setFilter2Type(FilterType type);
 
     // === FM Modulation (Filter 1 -> Filter 2 frequency) ===
     void setFMAmount(float amount);  // 0.0 to 1.0
@@ -158,24 +170,50 @@ public:
     void setDryWetMix(float wet);  // 0.0 to 1.0
 
 private:
-    // State Variable Filter with multiple outputs
+    // Multi-type Filter with multiple outputs
     struct SVFilter
     {
+        // SVF state variables
         float lowpass = 0.0f;
         float bandpass = 0.0f;
         float highpass = 0.0f;
         float notch = 0.0f;
 
+        // Ladder filter state (4 poles)
+        float stage[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        float delay[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+        // MS-20/Steiner state
+        float s1 = 0.0f, s2 = 0.0f;
+
+        // Parameters
         float frequency = 1000.0f;
         float resonance = 0.5f;
         FilterMode mode = FilterMode::LowPass;
+        FilterType type = FilterType::SVF;
 
-        float f = 0.0f;
-        float q = 0.0f;
+        // Coefficients
+        float f = 0.0f;      // Normalized frequency
+        float q = 0.0f;      // Q factor / feedback
+        float g = 0.0f;      // Gain coefficient for ladder
+        float k = 0.0f;      // Resonance coefficient
 
         void updateCoefficients(double sampleRate);
         float process(float input);
         void reset();
+
+    private:
+        float processSVF(float input);
+        float processLadder(float input);
+        float processDiode(float input);
+        float processMS20(float input);
+        float processSteiner(float input);
+        float processOTA(float input);
+
+        // Saturation helpers
+        float tanhApprox(float x);
+        float softClip(float x);
+        float diodeClip(float x);
     };
 
     // ADSR Envelope

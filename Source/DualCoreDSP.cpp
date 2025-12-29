@@ -306,6 +306,10 @@ void DualCoreDSP::process(juce::AudioBuffer<float>& buffer)
             // Dry/wet mix (with modulation)
             float output = drySignal * (1.0f - modulatedMix) + input * modulatedMix;
 
+            // Final safety check - prevent NaN/Inf from reaching output
+            if (!std::isfinite(output))
+                output = 0.0f;
+
             buffer.setSample(ch, sample, output);
         }
     }
@@ -379,6 +383,32 @@ void DualCoreDSP::setFilter2Mode(FilterMode mode)
 {
     filter2L.mode = mode;
     filter2R.mode = mode;
+}
+
+void DualCoreDSP::setFilter1Type(FilterType type)
+{
+    if (filter1L.type != type || filter1R.type != type)
+    {
+        filter1L.type = type;
+        filter1R.type = type;
+        filter1L.reset();
+        filter1R.reset();
+        filter1L.updateCoefficients(sampleRate);
+        filter1R.updateCoefficients(sampleRate);
+    }
+}
+
+void DualCoreDSP::setFilter2Type(FilterType type)
+{
+    if (filter2L.type != type || filter2R.type != type)
+    {
+        filter2L.type = type;
+        filter2R.type = type;
+        filter2L.reset();
+        filter2R.reset();
+        filter2L.updateCoefficients(sampleRate);
+        filter2R.updateCoefficients(sampleRate);
+    }
 }
 
 void DualCoreDSP::setFMAmount(float amount)
@@ -724,23 +754,102 @@ float DualCoreDSP::softLimit(float input)
 
 void DualCoreDSP::SVFilter::updateCoefficients(double sr)
 {
+    // Safety: ensure sample rate is valid
+    if (sr <= 0.0) sr = 44100.0;
+
+    // Base SVF coefficients (used by SVF and as basis for others)
     f = 2.0f * std::sin(juce::MathConstants<float>::pi * frequency / static_cast<float>(sr));
     f = juce::jlimit(0.0f, 0.99f, f);
     q = 1.0f - resonance * 0.99f;
     q = juce::jmax(0.01f, q);
+
+    // Ladder filter coefficients
+    float fc = frequency / static_cast<float>(sr);
+    g = 0.9892f * fc - 0.4342f * fc * fc + 0.1381f * fc * fc * fc - 0.0202f * fc * fc * fc * fc;
+    g = juce::jlimit(0.0f, 0.9f, g);
+    k = resonance * 4.0f;  // Resonance feedback (0-4 range for ladder)
+
+    // Final safety check on all coefficients
+    if (!std::isfinite(f)) f = 0.1f;
+    if (!std::isfinite(q)) q = 0.5f;
+    if (!std::isfinite(g)) g = 0.1f;
+    if (!std::isfinite(k)) k = 0.0f;
 }
 
 float DualCoreDSP::SVFilter::process(float input)
 {
-    // Chamberlin SVF
+    switch (type)
+    {
+        case FilterType::SVF:     return processSVF(input);
+        case FilterType::Ladder:  return processLadder(input);
+        case FilterType::Diode:   return processDiode(input);
+        case FilterType::MS20:    return processMS20(input);
+        case FilterType::Steiner: return processSteiner(input);
+        case FilterType::OTA:     return processOTA(input);
+        default: return processSVF(input);
+    }
+}
+
+void DualCoreDSP::SVFilter::reset()
+{
+    // SVF state
+    lowpass = bandpass = highpass = notch = 0.0f;
+    // Ladder state
+    for (int i = 0; i < 4; ++i)
+    {
+        stage[i] = 0.0f;
+        delay[i] = 0.0f;
+    }
+    // MS-20/Steiner state
+    s1 = s2 = 0.0f;
+}
+
+// === Saturation helper functions ===
+
+float DualCoreDSP::SVFilter::tanhApprox(float x)
+{
+    // Fast tanh approximation
+    if (x < -3.0f) return -1.0f;
+    if (x > 3.0f) return 1.0f;
+    float x2 = x * x;
+    return x * (27.0f + x2) / (27.0f + 9.0f * x2);
+}
+
+float DualCoreDSP::SVFilter::softClip(float x)
+{
+    // Soft saturation curve
+    return x / (1.0f + std::abs(x));
+}
+
+float DualCoreDSP::SVFilter::diodeClip(float x)
+{
+    // Asymmetric diode-style clipping (sharper than tanh)
+    if (x > 0.0f)
+        return 1.0f - std::exp(-x * 1.5f);
+    else
+        return -1.0f + std::exp(x * 1.2f);
+}
+
+// === Clean SVF (Chamberlin) ===
+
+float DualCoreDSP::SVFilter::processSVF(float input)
+{
+    // Safety check for NaN/Inf
+    if (!std::isfinite(input)) input = 0.0f;
+
     lowpass += f * bandpass;
     highpass = input - lowpass - q * bandpass;
     bandpass += f * highpass;
     notch = highpass + lowpass;
 
-    // Soft limit for stability at high resonance
+    // Soft limit for stability
     bandpass = juce::jlimit(-4.0f, 4.0f, bandpass);
     lowpass = juce::jlimit(-4.0f, 4.0f, lowpass);
+
+    // Safety limits
+    if (!std::isfinite(lowpass)) lowpass = 0.0f;
+    if (!std::isfinite(bandpass)) bandpass = 0.0f;
+    if (!std::isfinite(highpass)) highpass = 0.0f;
 
     switch (mode)
     {
@@ -752,9 +861,270 @@ float DualCoreDSP::SVFilter::process(float input)
     }
 }
 
-void DualCoreDSP::SVFilter::reset()
+// === Moog-style Transistor Ladder ===
+
+float DualCoreDSP::SVFilter::processLadder(float input)
 {
-    lowpass = bandpass = highpass = notch = 0.0f;
+    // 4-pole ladder filter with feedback
+    // Classic Moog character: warm, fat, bass loss at high resonance
+
+    // Safety check for NaN/Inf
+    if (!std::isfinite(input)) input = 0.0f;
+
+    // Feedback with resonance (causes the classic bass dip)
+    float feedback = delay[3] * k;
+    float inputWithFeedback = input - feedback;
+
+    // Soft saturation on input (transistor-style)
+    inputWithFeedback = tanhApprox(inputWithFeedback);
+
+    // 4 cascaded 1-pole lowpass stages
+    stage[0] = stage[0] + g * (inputWithFeedback - stage[0]);
+    stage[0] = tanhApprox(stage[0]);  // Saturation per stage
+
+    stage[1] = stage[1] + g * (stage[0] - stage[1]);
+    stage[1] = tanhApprox(stage[1]);
+
+    stage[2] = stage[2] + g * (stage[1] - stage[2]);
+    stage[2] = tanhApprox(stage[2]);
+
+    stage[3] = stage[3] + g * (stage[2] - stage[3]);
+    stage[3] = tanhApprox(stage[3]);
+
+    // Store for feedback with safety limits
+    for (int i = 0; i < 4; ++i)
+    {
+        if (!std::isfinite(stage[i])) stage[i] = 0.0f;
+        delay[i] = stage[i];
+    }
+
+    // Output selection based on mode
+    switch (mode)
+    {
+        case FilterMode::LowPass:
+            return stage[3];  // 4-pole lowpass (24dB/oct)
+        case FilterMode::HighPass:
+            return input - stage[3];  // Highpass by subtraction
+        case FilterMode::BandPass:
+            return stage[1] - stage[3];  // Bandpass from stages
+        case FilterMode::Notch:
+            return input - stage[1] + stage[3] * 0.5f;  // Notch approximation
+        default:
+            return stage[3];
+    }
+}
+
+// === Diode Ladder (303-style) ===
+
+float DualCoreDSP::SVFilter::processDiode(float input)
+{
+    // Diode ladder: sharper, more acidic than transistor ladder
+    // Tighter resonance, less bass loss, more bite
+
+    // Safety check for NaN/Inf
+    if (!std::isfinite(input)) input = 0.0f;
+
+    float feedback = delay[3] * k * 1.1f;  // Slightly more aggressive feedback
+    float inputWithFeedback = input - feedback;
+
+    // Diode-style clipping (asymmetric, sharper)
+    inputWithFeedback = diodeClip(inputWithFeedback * 1.2f);
+
+    // 4 cascaded stages with diode nonlinearity
+    stage[0] = stage[0] + g * (inputWithFeedback - stage[0]);
+    stage[0] = diodeClip(stage[0]);
+
+    stage[1] = stage[1] + g * (stage[0] - stage[1]);
+    stage[1] = diodeClip(stage[1]);
+
+    stage[2] = stage[2] + g * (stage[1] - stage[2]);
+    stage[2] = diodeClip(stage[2]);
+
+    stage[3] = stage[3] + g * (stage[2] - stage[3]);
+    stage[3] = diodeClip(stage[3]);
+
+    // Safety limits
+    for (int i = 0; i < 4; ++i)
+    {
+        if (!std::isfinite(stage[i])) stage[i] = 0.0f;
+        delay[i] = stage[i];
+    }
+
+    // Compensate for bass loss less than Moog
+    float bassComp = 1.0f + k * 0.15f;
+
+    switch (mode)
+    {
+        case FilterMode::LowPass:
+            return stage[3] * bassComp;
+        case FilterMode::HighPass:
+            return (input - stage[3]) * bassComp;
+        case FilterMode::BandPass:
+            return (stage[1] - stage[3]) * bassComp * 1.5f;
+        case FilterMode::Notch:
+            return (input - stage[1] + stage[3] * 0.5f) * bassComp;
+        default:
+            return stage[3] * bassComp;
+    }
+}
+
+// === Korg MS-20 Style ===
+
+float DualCoreDSP::SVFilter::processMS20(float input)
+{
+    // MS-20: Sallen-Key derived, aggressive, screaming at high resonance
+    // Asymmetric distortion in feedback, can fold and scream
+
+    // Safety check for NaN/Inf
+    if (!std::isfinite(input)) input = 0.0f;
+
+    float resoAmount = resonance * resonance * 4.0f;  // Exponential resonance curve
+
+    // Aggressive feedback with asymmetric clipping
+    float fb = s2 * resoAmount;
+    fb = fb > 0.0f ? std::tanh(fb * 2.0f) : std::tanh(fb * 1.5f);  // Asymmetric
+
+    float inputWithFB = input - fb;
+
+    // First stage with saturation
+    float hp1 = inputWithFB - s1;
+    s1 = s1 + f * hp1;
+    s1 = tanhApprox(s1 * 1.3f);  // Extra saturation
+
+    // Second stage - more aggressive
+    float hp2 = s1 - s2;
+    s2 = s2 + f * hp2;
+
+    // MS-20 characteristic: can fold/scream at high resonance
+    if (resonance > 0.7f)
+    {
+        float foldAmount = (resonance - 0.7f) * 3.0f;
+        // Limit s2 before sin to prevent extreme values
+        float s2Limited = juce::jlimit(-3.0f, 3.0f, s2 * (1.0f + foldAmount));
+        s2 = std::sin(s2Limited);  // Wave folding
+    }
+    else
+    {
+        s2 = tanhApprox(s2 * 1.5f);
+    }
+
+    // Safety limits
+    if (!std::isfinite(s1)) s1 = 0.0f;
+    if (!std::isfinite(s2)) s2 = 0.0f;
+
+    // Output selection
+    switch (mode)
+    {
+        case FilterMode::LowPass:
+            return s2;
+        case FilterMode::HighPass:
+            return hp1;
+        case FilterMode::BandPass:
+            return s1 - s2;
+        case FilterMode::Notch:
+            return hp1 + s2 * 0.7f;
+        default:
+            return s2;
+    }
+}
+
+// === Steiner-Parker ===
+
+float DualCoreDSP::SVFilter::processSteiner(float input)
+{
+    // Steiner-Parker: vocal, rubbery, formant-like resonance
+    // Diode ring topology with asymmetric resonance
+
+    // Safety check for NaN/Inf
+    if (!std::isfinite(input)) input = 0.0f;
+
+    float resoAmount = resonance * 3.5f;
+
+    // Asymmetric resonance emphasis (formant-like)
+    float fb = s2 * resoAmount;
+    float asymmetry = 1.0f + s2 * 0.3f;  // Modulates feedback asymmetrically
+    fb = softClip(fb * asymmetry);
+
+    float inputWithFB = input - fb;
+
+    // First integrator
+    float diff1 = inputWithFB - s1;
+    s1 = s1 + f * softClip(diff1 * 1.5f);
+
+    // Second integrator with rubber-band feel
+    float diff2 = s1 - s2;
+    s2 = s2 + f * 0.95f * softClip(diff2 * 1.3f);
+
+    // Safety limits
+    if (!std::isfinite(s1)) s1 = 0.0f;
+    if (!std::isfinite(s2)) s2 = 0.0f;
+
+    // Add subtle formant emphasis
+    float formant = s1 * s2 * 0.1f;  // Intermodulation for vocal quality
+
+    switch (mode)
+    {
+        case FilterMode::LowPass:
+            return s2 + formant;
+        case FilterMode::HighPass:
+            return inputWithFB - s1 + formant * 0.5f;
+        case FilterMode::BandPass:
+            return (s1 - s2) * 1.3f + formant;
+        case FilterMode::Notch:
+            return inputWithFB - s1 + s2 + formant * 0.3f;
+        default:
+            return s2 + formant;
+    }
+}
+
+// === OTA (80s Polysynth style) ===
+
+float DualCoreDSP::SVFilter::processOTA(float input)
+{
+    // OTA filter: punchy, snappy, slightly grainy
+    // CEM/SSM style - fast response, can be gritty
+
+    // Safety check for NaN/Inf
+    if (!std::isfinite(input)) input = 0.0f;
+
+    float resoAmount = resonance * 3.8f;
+
+    // OTA-style feedback with slight graininess
+    float fb = s2 * resoAmount;
+    // Add subtle noise/grain at high resonance
+    float grain = (resonance > 0.5f) ? (resonance - 0.5f) * 0.02f * (s2 * s2) : 0.0f;
+    fb = tanhApprox(fb) + grain;
+
+    float inputWithFB = input - fb;
+
+    // Fast attack OTA characteristic
+    float attackMod = 1.0f + std::abs(inputWithFB) * 0.2f;
+
+    // First integrator - snappy response
+    float diff1 = inputWithFB - s1;
+    s1 = s1 + f * attackMod * tanhApprox(diff1 * 1.2f);
+
+    // Second integrator
+    float diff2 = s1 - s2;
+    s2 = s2 + f * tanhApprox(diff2 * 1.1f);
+
+    // Safety limits
+    if (!std::isfinite(s1)) s1 = 0.0f;
+    if (!std::isfinite(s2)) s2 = 0.0f;
+
+    switch (mode)
+    {
+        case FilterMode::LowPass:
+            return s2;
+        case FilterMode::HighPass:
+            return inputWithFB - s1;
+        case FilterMode::BandPass:
+            return (s1 - s2) * 1.4f;  // Boosted bandpass
+        case FilterMode::Notch:
+            return inputWithFB - s1 + s2;
+        default:
+            return s2;
+    }
 }
 
 // === ADSR Implementation ===

@@ -72,11 +72,13 @@ private:
     static constexpr const char* FILTER1_FREQ_ID = "filter1Freq";
     static constexpr const char* FILTER1_RESO_ID = "filter1Reso";
     static constexpr const char* FILTER1_MODE_ID = "filter1Mode";
+    static constexpr const char* FILTER1_TYPE_ID = "filter1Type";
 
     // Filter 2
     static constexpr const char* FILTER2_FREQ_ID = "filter2Freq";
     static constexpr const char* FILTER2_RESO_ID = "filter2Reso";
     static constexpr const char* FILTER2_MODE_ID = "filter2Mode";
+    static constexpr const char* FILTER2_TYPE_ID = "filter2Type";
 
     // FM
     static constexpr const char* FM_AMOUNT_ID = "fmAmount";

@@ -41,6 +41,7 @@ private:
     juce::Slider filter1FreqSlider;
     juce::Slider filter1ResoSlider;
     juce::ComboBox filter1ModeBox;
+    juce::ComboBox filter1TypeBox;
     juce::Label filter1FreqLabel;
     juce::Label filter1ResoLabel;
 
@@ -48,6 +49,7 @@ private:
     juce::Slider filter2FreqSlider;
     juce::Slider filter2ResoSlider;
     juce::ComboBox filter2ModeBox;
+    juce::ComboBox filter2TypeBox;
     juce::Label filter2FreqLabel;
     juce::Label filter2ResoLabel;
 
@@ -134,10 +136,12 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> filter1FreqAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> filter1ResoAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filter1ModeAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filter1TypeAttachment;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> filter2FreqAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> filter2ResoAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filter2ModeAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filter2TypeAttachment;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> fmAmountAttachment;
 

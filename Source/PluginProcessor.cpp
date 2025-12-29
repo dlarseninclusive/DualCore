@@ -68,6 +68,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualCoreAudioProcessor::crea
         juce::StringArray{"Low Pass", "High Pass", "Band Pass", "Notch"},
         0));
 
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{FILTER1_TYPE_ID, 1},
+        "Filter 1 Type",
+        juce::StringArray{"SVF", "Ladder", "Diode", "MS-20", "Steiner", "OTA"},
+        0));
+
     // === Filter 2 ===
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{FILTER2_FREQ_ID, 1},
@@ -89,6 +95,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualCoreAudioProcessor::crea
         juce::ParameterID{FILTER2_MODE_ID, 1},
         "Filter 2 Mode",
         juce::StringArray{"Low Pass", "High Pass", "Band Pass", "Notch"},
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{FILTER2_TYPE_ID, 1},
+        "Filter 2 Type",
+        juce::StringArray{"SVF", "Ladder", "Diode", "MS-20", "Steiner", "OTA"},
         0));
 
     // === FM Modulation ===
@@ -373,12 +385,16 @@ void DualCoreAudioProcessor::updateDSPFromParameters()
     dualCoreDSP.setFilter1Resonance(*apvts.getRawParameterValue(FILTER1_RESO_ID));
     dualCoreDSP.setFilter1Mode(static_cast<DualCoreDSP::FilterMode>(
         static_cast<int>(*apvts.getRawParameterValue(FILTER1_MODE_ID))));
+    dualCoreDSP.setFilter1Type(static_cast<DualCoreDSP::FilterType>(
+        static_cast<int>(*apvts.getRawParameterValue(FILTER1_TYPE_ID))));
 
     // Filter 2
     dualCoreDSP.setFilter2Frequency(*apvts.getRawParameterValue(FILTER2_FREQ_ID));
     dualCoreDSP.setFilter2Resonance(*apvts.getRawParameterValue(FILTER2_RESO_ID));
     dualCoreDSP.setFilter2Mode(static_cast<DualCoreDSP::FilterMode>(
         static_cast<int>(*apvts.getRawParameterValue(FILTER2_MODE_ID))));
+    dualCoreDSP.setFilter2Type(static_cast<DualCoreDSP::FilterType>(
+        static_cast<int>(*apvts.getRawParameterValue(FILTER2_TYPE_ID))));
 
     // FM
     dualCoreDSP.setFMAmount(*apvts.getRawParameterValue(FM_AMOUNT_ID));

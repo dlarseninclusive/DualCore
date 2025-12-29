@@ -6,15 +6,23 @@ A dual multimode filter VST3 plugin with extensive modulation capabilities, buil
 
 ## Features
 
-### Dual Filters
-- **Filter 1 & Filter 2**: Independent state-variable filters
-- **Modes**: Low Pass, High Pass, Band Pass, Notch
+### Dual Filters with Classic Analog Types
+- **Filter 1 & Filter 2**: Independent filters with selectable types
+- **6 Filter Types**:
+  - **SVF** - Clean state-variable filter (default) - precise and articulate
+  - **Ladder** - Moog-style transistor ladder - warm, fat, classic bass loss at resonance
+  - **Diode** - TB-303 style diode ladder - acidic, sharp, buzzy
+  - **MS-20** - Korg MS-20 style - aggressive, screaming at high resonance
+  - **Steiner** - Steiner-Parker style - vocal, formant-like, rubbery
+  - **OTA** - 80s polysynth style (CEM/SSM) - punchy, snappy
+- **4 Filter Modes**: Low Pass, High Pass, Band Pass, Notch
 - **Resonance**: Full range with self-oscillation capability
 - **Routing**: Series or Parallel configuration
 
 ### Modulation
 - **6-Slot Modulation Matrix**: Flexible routing with bipolar amounts
 - **LFO1 & LFO2**: Dual LFOs with 6 waveforms each (Sine, Triangle, Square, Saw Up, Saw Down, Random)
+- **Tempo Sync**: Both LFOs can sync to host tempo with note divisions
 - **ADSR Envelope**: Input-triggered envelope with Attack, Decay, Sustain, Release
 - **Input Follower**: Envelope follower for dynamic modulation
 - **FM**: Filter 1 output modulates Filter 2 frequency
@@ -32,9 +40,23 @@ A dual multimode filter VST3 plugin with extensive modulation capabilities, buil
 - Soft limiter
 
 ### Additional Features
-- Preset save/load system
-- Scalable UI (70% to 150%)
-- Input and output level metering
+- **Preset System**: Save/load presets with factory presets included
+- **Scalable UI**: 70% to 200% scaling
+- **Real-time Filter Display**: Visual frequency response showing both filters
+- **Input/Output Metering**: Level meters for signal monitoring
+
+## Factory Presets
+
+DualCore includes factory presets showcasing the different filter types:
+
+| Preset | Filter Types | Description |
+|--------|--------------|-------------|
+| Moog Ladder Bass | Ladder + Ladder | Classic warm Moog-style bass |
+| Acid 303 | Diode + Diode | TB-303 inspired acid sounds |
+| MS20 Screamer | MS-20 + MS-20 | Aggressive screaming filter |
+| Steiner Vowel | Steiner + Steiner | Formant-like vocal sounds |
+| OTA Punch | OTA + OTA | Snappy 80s polysynth character |
+| Hybrid Acid MS20 | Diode + MS-20 | Mixed acid/aggressive combo |
 
 ## Building
 
@@ -62,17 +84,38 @@ DualCore/
 ├── README.md               # This file
 ├── ROADMAP.md              # Development roadmap
 ├── docs/                   # Additional documentation
-│   └── DSP.md              # DSP implementation details
+│   ├── DSP.md              # DSP implementation details
+│   └── HOWTO.md            # User guide
+├── Presets/                # Factory presets
 └── Source/
     ├── PluginProcessor.h/cpp   # Audio processing & parameters
     ├── PluginEditor.h/cpp      # User interface
-    └── DualCoreDSP.h/cpp       # Core DSP engine
+    ├── DualCoreDSP.h/cpp       # Core DSP engine
+    ├── CustomLookAndFeel.h/cpp # UI styling
+    └── FilterResponseDisplay.h/cpp # Filter visualization
 ```
 
 ## Documentation
 
+- [How To Use DualCore](docs/HOWTO.md) - User guide and tips
 - [Roadmap](ROADMAP.md) - Development status and planned features
 - [DSP Details](docs/DSP.md) - Technical DSP implementation
+
+## Changelog
+
+### v1.1.0
+- Added 6 analog filter type emulations (SVF, Ladder, Diode, MS-20, Steiner, OTA)
+- New factory presets showcasing filter types
+- Improved UI readability with larger fonts
+- Filter response display now shows type-specific curves
+- DSP stability improvements
+
+### v1.0.0
+- Initial release with dual SVF filters
+- 6-slot modulation matrix
+- Dual LFOs with tempo sync
+- 5 drive types
+- Preset system
 
 ## License
 

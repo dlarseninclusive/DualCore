@@ -24,6 +24,14 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
     filter1ModeBox.addItem("NOTCH", 4);
     addAndMakeVisible(filter1ModeBox);
 
+    filter1TypeBox.addItem("SVF", 1);
+    filter1TypeBox.addItem("Ladder", 2);
+    filter1TypeBox.addItem("Diode", 3);
+    filter1TypeBox.addItem("MS-20", 4);
+    filter1TypeBox.addItem("Steiner", 5);
+    filter1TypeBox.addItem("OTA", 6);
+    addAndMakeVisible(filter1TypeBox);
+
     // === Filter 2 ===
     setupSlider(filter2FreqSlider, filter2FreqLabel, "FREQ 2");
     setupSlider(filter2ResoSlider, filter2ResoLabel, "RESO 2");
@@ -33,6 +41,14 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
     filter2ModeBox.addItem("BP", 3);
     filter2ModeBox.addItem("NOTCH", 4);
     addAndMakeVisible(filter2ModeBox);
+
+    filter2TypeBox.addItem("SVF", 1);
+    filter2TypeBox.addItem("Ladder", 2);
+    filter2TypeBox.addItem("Diode", 3);
+    filter2TypeBox.addItem("MS-20", 4);
+    filter2TypeBox.addItem("Steiner", 5);
+    filter2TypeBox.addItem("OTA", 6);
+    addAndMakeVisible(filter2TypeBox);
 
     // === FM ===
     setupSlider(fmAmountSlider, fmAmountLabel, "FM");
@@ -194,6 +210,8 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
         audioProcessor.apvts, "filter1Reso", filter1ResoSlider);
     filter1ModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         audioProcessor.apvts, "filter1Mode", filter1ModeBox);
+    filter1TypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        audioProcessor.apvts, "filter1Type", filter1TypeBox);
 
     filter2FreqAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "filter2Freq", filter2FreqSlider);
@@ -201,6 +219,8 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
         audioProcessor.apvts, "filter2Reso", filter2ResoSlider);
     filter2ModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         audioProcessor.apvts, "filter2Mode", filter2ModeBox);
+    filter2TypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        audioProcessor.apvts, "filter2Type", filter2TypeBox);
 
     fmAmountAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "fmAmount", fmAmountSlider);
@@ -287,12 +307,13 @@ DualCoreAudioProcessorEditor::~DualCoreAudioProcessorEditor()
 void DualCoreAudioProcessorEditor::setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 16);
+    slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 20);
     slider.setTextValueSuffix("");
     addAndMakeVisible(slider);
 
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
+    label.setFont(juce::FontOptions(14.0f).withStyle("Bold"));
     addAndMakeVisible(label);
 }
 
@@ -326,15 +347,17 @@ void DualCoreAudioProcessorEditor::timerCallback()
     float f1Freq = *audioProcessor.apvts.getRawParameterValue("filter1Freq");
     float f1Reso = *audioProcessor.apvts.getRawParameterValue("filter1Reso");
     int f1Mode = static_cast<int>(*audioProcessor.apvts.getRawParameterValue("filter1Mode"));
+    int f1Type = static_cast<int>(*audioProcessor.apvts.getRawParameterValue("filter1Type"));
 
     float f2Freq = *audioProcessor.apvts.getRawParameterValue("filter2Freq");
     float f2Reso = *audioProcessor.apvts.getRawParameterValue("filter2Reso");
     int f2Mode = static_cast<int>(*audioProcessor.apvts.getRawParameterValue("filter2Mode"));
+    int f2Type = static_cast<int>(*audioProcessor.apvts.getRawParameterValue("filter2Type"));
 
     bool parallel = *audioProcessor.apvts.getRawParameterValue("routing") > 0.5f;
 
-    filterResponseDisplay.setFilter1Parameters(f1Freq, f1Reso, f1Mode);
-    filterResponseDisplay.setFilter2Parameters(f2Freq, f2Reso, f2Mode);
+    filterResponseDisplay.setFilter1Parameters(f1Freq, f1Reso, f1Mode, f1Type);
+    filterResponseDisplay.setFilter2Parameters(f2Freq, f2Reso, f2Mode, f2Type);
     filterResponseDisplay.setParallelMode(parallel);
 
     repaint();
@@ -365,9 +388,9 @@ void DualCoreAudioProcessorEditor::paint(juce::Graphics& g)
         g.setColour(juce::Colour(0xff3a3a5a));
         g.drawRoundedRectangle(rect, 6.0f * s, 1.0f);
 
-        g.setColour(juce::Colour(0xff00aaff));
-        g.setFont(juce::FontOptions(11.0f * s).withStyle("Bold"));
-        g.drawText(title, rect.removeFromTop(18.0f * s), juce::Justification::centred);
+        g.setColour(juce::Colour(0xff00ccff));  // Brighter cyan
+        g.setFont(juce::FontOptions(13.0f * s).withStyle("Bold"));
+        g.drawText(title, rect.removeFromTop(20.0f * s), juce::Justification::centred);
     };
 
     // Row 1: Input, Filter 1, Filter 2, FM, Drive, Routing
@@ -423,9 +446,9 @@ void DualCoreAudioProcessorEditor::resized()
     float s = currentScale;
     int knob = static_cast<int>(55 * s);
     int smallKnob = static_cast<int>(45 * s);
-    int labelH = static_cast<int>(14 * s);
-    int comboH = static_cast<int>(22 * s);
-    int buttonH = static_cast<int>(24 * s);
+    int labelH = static_cast<int>(18 * s);
+    int comboH = static_cast<int>(26 * s);
+    int buttonH = static_cast<int>(26 * s);
     int margin = static_cast<int>(10 * s);
 
     // Header area
@@ -457,7 +480,9 @@ void DualCoreAudioProcessorEditor::resized()
     filter1ResoLabel.setBounds(x, row1Y, knob, labelH);
     filter1ResoSlider.setBounds(x, row1Y + labelH, knob, knob);
 
-    filter1ModeBox.setBounds(static_cast<int>(160 * s), row1Y + labelH + knob + margin, static_cast<int>(170 * s), comboH);
+    int filterComboY = row1Y + labelH + knob + margin;
+    filter1ModeBox.setBounds(static_cast<int>(160 * s), filterComboY, static_cast<int>(80 * s), comboH);
+    filter1TypeBox.setBounds(static_cast<int>(245 * s), filterComboY, static_cast<int>(85 * s), comboH);
 
     // Filter 2 section
     x = static_cast<int>(360 * s);
@@ -468,7 +493,8 @@ void DualCoreAudioProcessorEditor::resized()
     filter2ResoLabel.setBounds(x, row1Y, knob, labelH);
     filter2ResoSlider.setBounds(x, row1Y + labelH, knob, knob);
 
-    filter2ModeBox.setBounds(static_cast<int>(360 * s), row1Y + labelH + knob + margin, static_cast<int>(170 * s), comboH);
+    filter2ModeBox.setBounds(static_cast<int>(360 * s), filterComboY, static_cast<int>(80 * s), comboH);
+    filter2TypeBox.setBounds(static_cast<int>(445 * s), filterComboY, static_cast<int>(85 * s), comboH);
 
     // FM section
     x = static_cast<int>(565 * s);

@@ -34,6 +34,7 @@ public:
     juce::Font getAlertWindowTitleFont() override;
     juce::Font getAlertWindowMessageFont() override;
     juce::Font getAlertWindowFont() override;
+    juce::Font getSliderPopupFont(juce::Slider&) override;
 
     void setScale(float scale) { currentScale = scale; }
     float getScale() const { return currentScale; }

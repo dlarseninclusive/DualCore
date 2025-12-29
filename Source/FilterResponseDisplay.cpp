@@ -51,14 +51,14 @@ void FilterResponseDisplay::paint(juce::Graphics& g)
     g.drawHorizontalLine(static_cast<int>(zeroY), graphX, graphX + graphWidth);
 
     // Draw frequency labels
-    g.setColour(juce::Colours::white.withAlpha(0.5f));
-    g.setFont(juce::FontOptions(9.0f));
-    g.drawText("100", static_cast<int>(graphX + freqToX(100.0f, graphWidth) - 12),
-               static_cast<int>(graphY + graphHeight + 2), 24, 12, juce::Justification::centred);
-    g.drawText("1k", static_cast<int>(graphX + freqToX(1000.0f, graphWidth) - 8),
-               static_cast<int>(graphY + graphHeight + 2), 16, 12, juce::Justification::centred);
-    g.drawText("10k", static_cast<int>(graphX + freqToX(10000.0f, graphWidth) - 12),
-               static_cast<int>(graphY + graphHeight + 2), 24, 12, juce::Justification::centred);
+    g.setColour(juce::Colours::white.withAlpha(0.7f));
+    g.setFont(juce::FontOptions(11.0f));
+    g.drawText("100", static_cast<int>(graphX + freqToX(100.0f, graphWidth) - 15),
+               static_cast<int>(graphY + graphHeight + 2), 30, 14, juce::Justification::centred);
+    g.drawText("1k", static_cast<int>(graphX + freqToX(1000.0f, graphWidth) - 12),
+               static_cast<int>(graphY + graphHeight + 2), 24, 14, juce::Justification::centred);
+    g.drawText("10k", static_cast<int>(graphX + freqToX(10000.0f, graphWidth) - 15),
+               static_cast<int>(graphY + graphHeight + 2), 30, 14, juce::Justification::centred);
 
     // Create paths for filter responses
     juce::Path filter1Path;
@@ -118,25 +118,27 @@ void FilterResponseDisplay::resized()
     updateResponseCurves();
 }
 
-void FilterResponseDisplay::setFilter1Parameters(float frequency, float resonance, int mode)
+void FilterResponseDisplay::setFilter1Parameters(float frequency, float resonance, int mode, int type)
 {
-    if (filter1Freq != frequency || filter1Reso != resonance || filter1Mode != mode)
+    if (filter1Freq != frequency || filter1Reso != resonance || filter1Mode != mode || filter1Type != type)
     {
         filter1Freq = frequency;
         filter1Reso = resonance;
         filter1Mode = mode;
+        filter1Type = type;
         updateResponseCurves();
         repaint();
     }
 }
 
-void FilterResponseDisplay::setFilter2Parameters(float frequency, float resonance, int mode)
+void FilterResponseDisplay::setFilter2Parameters(float frequency, float resonance, int mode, int type)
 {
-    if (filter2Freq != frequency || filter2Reso != resonance || filter2Mode != mode)
+    if (filter2Freq != frequency || filter2Reso != resonance || filter2Mode != mode || filter2Type != type)
     {
         filter2Freq = frequency;
         filter2Reso = resonance;
         filter2Mode = mode;
+        filter2Type = type;
         updateResponseCurves();
         repaint();
     }
@@ -152,34 +154,138 @@ void FilterResponseDisplay::setParallelMode(bool parallel)
     }
 }
 
-float FilterResponseDisplay::calculateSVFMagnitude(float freq, float filterFreq, float resonance, int mode)
+float FilterResponseDisplay::calculateFilterMagnitude(float freq, float filterFreq, float resonance, int mode, int type)
 {
     // Normalized frequency
     float w = freq / filterFreq;
     float w2 = w * w;
+    float w4 = w2 * w2;
 
-    // Q factor from resonance (higher resonance = higher Q)
+    // Base Q factor from resonance
     float Q = 1.0f / (2.0f * (1.0f - resonance * 0.99f));
-
-    // SVF transfer function magnitudes
-    float denom = std::sqrt((1.0f - w2) * (1.0f - w2) + (w / Q) * (w / Q));
 
     float magnitude = 1.0f;
 
-    switch (mode)
+    // Filter type determines the response shape
+    switch (type)
     {
-        case 0:  // Low Pass
-            magnitude = 1.0f / denom;
+        case 0:  // SVF - Clean 2-pole
+        {
+            float denom = std::sqrt((1.0f - w2) * (1.0f - w2) + (w / Q) * (w / Q));
+            switch (mode)
+            {
+                case 0: magnitude = 1.0f / denom; break;              // LP
+                case 1: magnitude = w2 / denom; break;                // HP
+                case 2: magnitude = (w / Q) / denom; break;           // BP
+                case 3: magnitude = std::abs(1.0f - w2) / denom; break; // Notch
+            }
             break;
-        case 1:  // High Pass
-            magnitude = w2 / denom;
+        }
+
+        case 1:  // Ladder - 4-pole with bass loss
+        {
+            // 4-pole cascade with resonance feedback causing bass reduction
+            float k = resonance * 4.0f;  // Feedback amount
+            float bassLoss = 1.0f - (k * 0.15f);  // Bass reduction at high resonance
+
+            // 4-pole lowpass base response
+            float g = w;
+            float G = g / (1.0f + g);
+            float G4 = G * G * G * G;
+
+            float denom4 = std::sqrt((1.0f - w4) * (1.0f - w4) + (w2 / (Q * Q)) * (w2 / (Q * Q)));
+
+            switch (mode)
+            {
+                case 0:  // LP - 4-pole rolloff
+                    magnitude = (bassLoss / denom4) * (1.0f + k * G4);
+                    break;
+                case 1:  // HP
+                    magnitude = w4 / denom4;
+                    break;
+                case 2:  // BP - narrower than SVF
+                    magnitude = (w2 / (Q * 0.7f)) / denom4;
+                    break;
+                case 3:  // Notch
+                    magnitude = std::abs(1.0f - w4) / denom4;
+                    break;
+            }
             break;
-        case 2:  // Band Pass
-            magnitude = (w / Q) / denom;
+        }
+
+        case 2:  // Diode - Sharper, acidic
+        {
+            // Diode ladder - sharper resonance peak, less bass loss
+            float sharpness = 1.0f + resonance * 0.5f;
+
+            float denom4 = std::sqrt((1.0f - w4) * (1.0f - w4) + (w2 / (Q * Q * sharpness)) * (w2 / (Q * Q * sharpness)));
+
+            switch (mode)
+            {
+                case 0: magnitude = 1.0f / denom4; break;
+                case 1: magnitude = w4 / denom4; break;
+                case 2: magnitude = (w2 / (Q * sharpness)) / denom4 * 1.2f; break;
+                case 3: magnitude = std::abs(1.0f - w4) / denom4; break;
+            }
             break;
-        case 3:  // Notch
-            magnitude = std::abs(1.0f - w2) / denom;
+        }
+
+        case 3:  // MS-20 - Aggressive, screaming
+        {
+            // Very high Q at resonance, almost self-oscillating
+            float aggQ = Q * (1.0f + resonance * 2.0f);
+            float denom = std::sqrt((1.0f - w2) * (1.0f - w2) + (w / aggQ) * (w / aggQ));
+
+            // Add some harmonic content near resonance
+            float harmonicBoost = 1.0f + resonance * 0.3f * std::exp(-std::abs(w - 1.0f) * 5.0f);
+
+            switch (mode)
+            {
+                case 0: magnitude = harmonicBoost / denom; break;
+                case 1: magnitude = w2 * harmonicBoost / denom; break;
+                case 2: magnitude = (w / aggQ) / denom * harmonicBoost * 1.5f; break;
+                case 3: magnitude = std::abs(1.0f - w2) / denom * harmonicBoost; break;
+            }
             break;
+        }
+
+        case 4:  // Steiner - Formant-like, vocal
+        {
+            // Asymmetric resonance with formant peaks
+            float formantQ = Q * (1.0f + resonance * 0.8f);
+            float asymmetry = w < 1.0f ? 1.0f : 0.85f;  // Asymmetric response
+
+            float denom = std::sqrt((1.0f - w2) * (1.0f - w2) + (w / formantQ) * (w / formantQ));
+
+            switch (mode)
+            {
+                case 0: magnitude = asymmetry / denom; break;
+                case 1: magnitude = w2 * asymmetry / denom; break;
+                case 2: magnitude = (w / formantQ) / denom * 1.3f; break;
+                case 3: magnitude = std::abs(1.0f - w2) / denom * asymmetry; break;
+            }
+            break;
+        }
+
+        case 5:  // OTA - Punchy, snappy
+        default:
+        {
+            // Similar to SVF but with slightly tighter response
+            float tightQ = Q * 1.1f;
+            float denom = std::sqrt((1.0f - w2) * (1.0f - w2) + (w / tightQ) * (w / tightQ));
+
+            // Add slight punch/emphasis just below cutoff
+            float punch = 1.0f + resonance * 0.15f * std::exp(-std::abs(w - 0.9f) * 8.0f);
+
+            switch (mode)
+            {
+                case 0: magnitude = punch / denom; break;
+                case 1: magnitude = w2 * punch / denom; break;
+                case 2: magnitude = (w / tightQ) / denom; break;
+                case 3: magnitude = std::abs(1.0f - w2) / denom; break;
+            }
+            break;
+        }
     }
 
     return magnitude;
@@ -220,9 +326,9 @@ void FilterResponseDisplay::updateResponseCurves()
         float t = static_cast<float>(i) / static_cast<float>(numPoints - 1);
         float freq = minFreq * std::pow(maxFreq / minFreq, t);
 
-        // Calculate magnitudes
-        float mag1 = calculateSVFMagnitude(freq, filter1Freq, filter1Reso, filter1Mode);
-        float mag2 = calculateSVFMagnitude(freq, filter2Freq, filter2Reso, filter2Mode);
+        // Calculate magnitudes with filter type
+        float mag1 = calculateFilterMagnitude(freq, filter1Freq, filter1Reso, filter1Mode, filter1Type);
+        float mag2 = calculateFilterMagnitude(freq, filter2Freq, filter2Reso, filter2Mode, filter2Type);
 
         // Convert to dB
         float db1 = 20.0f * std::log10(juce::jmax(0.0001f, mag1));
