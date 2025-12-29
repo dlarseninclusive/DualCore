@@ -24,7 +24,7 @@ private:
 
     // Base dimensions
     static constexpr int BASE_WIDTH = 900;
-    static constexpr int BASE_HEIGHT = 600;
+    static constexpr int BASE_HEIGHT = 720;
     float currentScale = 1.0f;
 
     // === Input Section ===
@@ -66,13 +66,29 @@ private:
     juce::Label envAmountLabel;
     juce::Label envSensLabel;
 
-    // === LFO ===
+    // === LFO1 ===
     juce::Slider lfoRateSlider;
     juce::Slider lfoDepthSlider;
     juce::ComboBox lfoWaveBox;
     juce::ComboBox lfoTargetBox;
     juce::Label lfoRateLabel;
     juce::Label lfoDepthLabel;
+
+    // === LFO2 ===
+    juce::Slider lfo2RateSlider;
+    juce::Slider lfo2DepthSlider;
+    juce::ComboBox lfo2WaveBox;
+    juce::Label lfo2RateLabel;
+    juce::Label lfo2DepthLabel;
+
+    // === Modulation Matrix ===
+    struct ModSlotUI
+    {
+        juce::ComboBox sourceBox;
+        juce::ComboBox destBox;
+        juce::Slider amountSlider;
+    };
+    std::array<ModSlotUI, 6> modSlotUIs;
 
     // === AM ===
     juce::Slider amAmountSlider;
@@ -126,6 +142,19 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lfoDepthAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> lfoWaveAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> lfoTargetAttachment;
+
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lfo2RateAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lfo2DepthAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> lfo2WaveAttachment;
+
+    // Modulation Matrix Attachments
+    struct ModSlotAttachments
+    {
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> sourceAttachment;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> destAttachment;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> amountAttachment;
+    };
+    std::array<ModSlotAttachments, 6> modSlotAttachments;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> amAmountAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> amAttackAttachment;

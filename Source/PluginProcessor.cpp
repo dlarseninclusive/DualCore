@@ -174,6 +174,61 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualCoreAudioProcessor::crea
         juce::StringArray{"Filter 1", "Filter 2", "Both"},
         2));
 
+    // === LFO2 ===
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{LFO2_RATE_ID, 1},
+        "LFO2 Rate",
+        juce::NormalisableRange<float>(0.01f, 20.0f, 0.01f, 0.4f),
+        1.0f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value, 2) + " Hz"; },
+        nullptr));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{LFO2_DEPTH_ID, 1},
+        "LFO2 Depth",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+        0.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{LFO2_WAVE_ID, 1},
+        "LFO2 Waveform",
+        juce::StringArray{"Sine", "Triangle", "Square", "Saw Up", "Saw Down", "Random"},
+        0));
+
+    // === Modulation Matrix (6 slots) ===
+    juce::StringArray modSources{"None", "LFO1", "LFO2", "Envelope", "Input"};
+    juce::StringArray modDests{"None", "F1 Freq", "F1 Reso", "F2 Freq", "F2 Reso",
+                               "FM", "Drive", "LFO1 Rate", "LFO2 Rate", "Mix", "AM"};
+
+    for (int i = 1; i <= 6; ++i)
+    {
+        juce::String slotNum(i);
+
+        params.push_back(std::make_unique<juce::AudioParameterChoice>(
+            juce::ParameterID{"modSource" + slotNum, 1},
+            "Mod " + slotNum + " Source",
+            modSources,
+            0));
+
+        params.push_back(std::make_unique<juce::AudioParameterChoice>(
+            juce::ParameterID{"modDest" + slotNum, 1},
+            "Mod " + slotNum + " Destination",
+            modDests,
+            0));
+
+        params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{"modAmount" + slotNum, 1},
+            "Mod " + slotNum + " Amount",
+            juce::NormalisableRange<float>(-100.0f, 100.0f, 1.0f),
+            0.0f,
+            juce::String(),
+            juce::AudioProcessorParameter::genericParameter,
+            [](float value, int) { return juce::String(value, 0) + "%"; },
+            nullptr));
+    }
+
     // === AM ===
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{AM_AMOUNT_ID, 1},
@@ -310,12 +365,32 @@ void DualCoreAudioProcessor::updateDSPFromParameters()
     dualCoreDSP.setEnvAmount(*apvts.getRawParameterValue(ENV_AMOUNT_ID));
     dualCoreDSP.setEnvSensitivity(*apvts.getRawParameterValue(ENV_SENS_ID));
 
-    // LFO
+    // LFO1
     dualCoreDSP.setLFORate(*apvts.getRawParameterValue(LFO_RATE_ID));
     dualCoreDSP.setLFODepth(*apvts.getRawParameterValue(LFO_DEPTH_ID));
     dualCoreDSP.setLFOWaveform(static_cast<DualCoreDSP::LFOWaveform>(
         static_cast<int>(*apvts.getRawParameterValue(LFO_WAVE_ID))));
     dualCoreDSP.setLFOTarget(static_cast<int>(*apvts.getRawParameterValue(LFO_TARGET_ID)));
+
+    // LFO2
+    dualCoreDSP.setLFO2Rate(*apvts.getRawParameterValue(LFO2_RATE_ID));
+    dualCoreDSP.setLFO2Depth(*apvts.getRawParameterValue(LFO2_DEPTH_ID));
+    dualCoreDSP.setLFO2Waveform(static_cast<DualCoreDSP::LFOWaveform>(
+        static_cast<int>(*apvts.getRawParameterValue(LFO2_WAVE_ID))));
+
+    // Modulation Matrix
+    for (int i = 1; i <= 6; ++i)
+    {
+        juce::String slotNum(i);
+        int source = static_cast<int>(*apvts.getRawParameterValue("modSource" + slotNum));
+        int dest = static_cast<int>(*apvts.getRawParameterValue("modDest" + slotNum));
+        float amount = *apvts.getRawParameterValue("modAmount" + slotNum) / 100.0f;
+
+        dualCoreDSP.setModSlot(i - 1,
+            static_cast<DualCoreDSP::ModSource>(source),
+            static_cast<DualCoreDSP::ModDestination>(dest),
+            amount);
+    }
 
     // AM
     dualCoreDSP.setAMAmount(*apvts.getRawParameterValue(AM_AMOUNT_ID));

@@ -32,8 +32,9 @@ void DualCoreDSP::prepare(double newSampleRate, int samplesPerBlock)
     adsrEnv.setSustain(0.7f);
     adsrEnv.setRelease(200.0f, sampleRate);
 
-    // Initialize LFO
+    // Initialize LFOs
     lfo.setRate(1.0f, sampleRate);
+    lfo2.setRate(1.0f, sampleRate);
 
     // Initialize shelf filters
     hiBoostL.setHighShelf(3000.0f, 6.0f, sampleRate);
@@ -52,6 +53,7 @@ void DualCoreDSP::reset()
     filter2R.reset();
     adsrEnv.reset();
     lfo.reset();
+    lfo2.reset();
     inputEnvFollower.reset();
     amEnvFollower.reset();
     hiBoostL.reset();
@@ -95,13 +97,105 @@ void DualCoreDSP::process(juce::AudioBuffer<float>& buffer)
         }
         lastInputLevel = inputLevel;
 
-        // Process modulation sources
+        // === Compute all modulation sources ===
         float envValue = adsrEnv.process();
-        float lfoValue = lfo.process();
+        float lfo1Value = lfo.process();
+        float lfo2Value = lfo2.process();
 
-        // Calculate frequency modulation amounts
-        float envMod = envValue * envAmount * 8000.0f;  // Up to 8kHz modulation
-        float lfoMod = lfoValue * lfoDepth * 2000.0f;   // Up to 2kHz modulation
+        // === Calculate legacy modulation (backward compatible) ===
+        float envMod = envValue * envAmount * 8000.0f;
+        float lfoMod = lfo1Value * lfoDepth * 2000.0f;
+
+        // === Modulation Matrix Processing ===
+        float modFilter1Freq = 0.0f;
+        float modFilter1Reso = 0.0f;
+        float modFilter2Freq = 0.0f;
+        float modFilter2Reso = 0.0f;
+        float modFMAmount = 0.0f;
+        float modDriveAmount = 0.0f;
+        float modLFO1Rate = 0.0f;
+        float modLFO2Rate = 0.0f;
+        float modMix = 0.0f;
+        float modAMAmount = 0.0f;
+
+        for (int slot = 0; slot < NUM_MOD_SLOTS; ++slot)
+        {
+            const auto& modSlot = modSlots[slot];
+            if (modSlot.source == ModSource::None || modSlot.destination == ModDestination::None)
+                continue;
+
+            // Get source value (-1 to 1)
+            float sourceValue = 0.0f;
+            switch (modSlot.source)
+            {
+                case ModSource::LFO1:
+                    sourceValue = lfo1Value;
+                    break;
+                case ModSource::LFO2:
+                    sourceValue = lfo2Value;
+                    break;
+                case ModSource::Envelope:
+                    sourceValue = envValue * 2.0f - 1.0f;  // Convert 0-1 to -1 to 1
+                    break;
+                case ModSource::InputFollower:
+                    sourceValue = inputLevel * 2.0f - 1.0f;
+                    break;
+                default:
+                    break;
+            }
+
+            // Apply amount (source * amount gives modulation value)
+            float modValue = sourceValue * modSlot.amount;
+
+            // Accumulate to destination
+            switch (modSlot.destination)
+            {
+                case ModDestination::Filter1Freq:
+                    modFilter1Freq += modValue * 8000.0f;
+                    break;
+                case ModDestination::Filter1Reso:
+                    modFilter1Reso += modValue * 0.5f;
+                    break;
+                case ModDestination::Filter2Freq:
+                    modFilter2Freq += modValue * 8000.0f;
+                    break;
+                case ModDestination::Filter2Reso:
+                    modFilter2Reso += modValue * 0.5f;
+                    break;
+                case ModDestination::FMAmount:
+                    modFMAmount += modValue;
+                    break;
+                case ModDestination::DriveAmount:
+                    modDriveAmount += modValue;
+                    break;
+                case ModDestination::LFO1Rate:
+                    modLFO1Rate += modValue * 10.0f;
+                    break;
+                case ModDestination::LFO2Rate:
+                    modLFO2Rate += modValue * 10.0f;
+                    break;
+                case ModDestination::Mix:
+                    modMix += modValue;
+                    break;
+                case ModDestination::AMAmount:
+                    modAMAmount += modValue;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // Apply LFO rate modulation if needed
+        if (modLFO1Rate != 0.0f)
+            lfo.setRate(juce::jlimit(0.01f, 20.0f, lfoBaseRate + modLFO1Rate), sampleRate);
+        if (modLFO2Rate != 0.0f)
+            lfo2.setRate(juce::jlimit(0.01f, 20.0f, lfo2BaseRate + modLFO2Rate), sampleRate);
+
+        // Calculate modulated parameter values
+        float modulatedFM = juce::jlimit(0.0f, 1.0f, fmAmount + modFMAmount);
+        float modulatedDrive = juce::jlimit(0.0f, 1.0f, driveAmount + modDriveAmount);
+        float modulatedMix = juce::jlimit(0.0f, 1.0f, dryWetMix + modMix);
+        float modulatedAM = juce::jlimit(0.0f, 1.0f, amAmount + modAMAmount);
 
         for (int ch = 0; ch < numChannels; ++ch)
         {
@@ -119,29 +213,40 @@ void DualCoreDSP::process(juce::AudioBuffer<float>& buffer)
             if (limiterEnabled)
                 input = softLimit(input);
 
-            // Pre-filter drive
-            if (!drivePost && driveAmount > 0.0f)
+            // Pre-filter drive (with modulation)
+            if (!drivePost && modulatedDrive > 0.0f)
+            {
+                float savedDrive = driveAmount;
+                driveAmount = modulatedDrive;
                 input = processDrive(input);
+                driveAmount = savedDrive;
+            }
 
             // Get the appropriate filter instances
             SVFilter& f1 = (ch == 0) ? filter1L : filter1R;
             SVFilter& f2 = (ch == 0) ? filter2L : filter2R;
 
-            // Apply modulation to filter frequencies
-            float f1Freq = filter1BaseFreq;
-            float f2Freq = filter2BaseFreq;
+            // Apply modulation to filter frequencies (legacy + matrix)
+            float f1Freq = filter1BaseFreq + modFilter1Freq;
+            float f2Freq = filter2BaseFreq + modFilter2Freq;
+            float f1Reso = filter1BaseReso + modFilter1Reso;
+            float f2Reso = filter2BaseReso + modFilter2Reso;
 
+            // Add legacy LFO modulation
             if (lfoTarget == 0 || lfoTarget == 2)
                 f1Freq += lfoMod;
             if (lfoTarget == 1 || lfoTarget == 2)
                 f2Freq += lfoMod;
 
+            // Add legacy envelope modulation
             f1Freq += envMod;
             f2Freq += envMod;
 
-            // Clamp frequencies
+            // Clamp values
             f1Freq = juce::jlimit(20.0f, 20000.0f, f1Freq);
             f2Freq = juce::jlimit(20.0f, 20000.0f, f2Freq);
+            f1Reso = juce::jlimit(0.0f, 1.0f, f1Reso);
+            f2Reso = juce::jlimit(0.0f, 1.0f, f2Reso);
 
             float output1, output2;
 
@@ -149,12 +254,14 @@ void DualCoreDSP::process(juce::AudioBuffer<float>& buffer)
             {
                 // Parallel: both filters process input independently
                 f1.frequency = f1Freq;
+                f1.resonance = f1Reso;
                 f1.updateCoefficients(sampleRate);
                 output1 = f1.process(input);
 
                 // FM modulation: Filter 1 output modulates Filter 2 frequency
-                float fmMod = output1 * fmAmount * 4000.0f;
+                float fmMod = output1 * modulatedFM * 4000.0f;
                 f2.frequency = juce::jlimit(20.0f, 20000.0f, f2Freq + fmMod);
+                f2.resonance = f2Reso;
                 f2.updateCoefficients(sampleRate);
                 output2 = f2.process(input);
 
@@ -165,32 +272,39 @@ void DualCoreDSP::process(juce::AudioBuffer<float>& buffer)
             {
                 // Series: Filter 1 -> Filter 2
                 f1.frequency = f1Freq;
+                f1.resonance = f1Reso;
                 f1.updateCoefficients(sampleRate);
                 output1 = f1.process(input);
 
                 // FM modulation
-                float fmMod = output1 * fmAmount * 4000.0f;
+                float fmMod = output1 * modulatedFM * 4000.0f;
                 f2.frequency = juce::jlimit(20.0f, 20000.0f, f2Freq + fmMod);
+                f2.resonance = f2Reso;
                 f2.updateCoefficients(sampleRate);
                 output2 = f2.process(output1);
 
                 input = output2;
             }
 
-            // AM modulation (amplitude modulation from filter output)
-            if (amAmount > 0.0f)
+            // AM modulation (with matrix modulation)
+            if (modulatedAM > 0.0f)
             {
                 float amEnv = amEnvFollower.process(std::abs(output2));
-                float amGain = 1.0f - (amAmount * (1.0f - amEnv));
+                float amGain = 1.0f - (modulatedAM * (1.0f - amEnv));
                 input *= amGain;
             }
 
-            // Post-filter drive
-            if (drivePost && driveAmount > 0.0f)
+            // Post-filter drive (with modulation)
+            if (drivePost && modulatedDrive > 0.0f)
+            {
+                float savedDrive = driveAmount;
+                driveAmount = modulatedDrive;
                 input = processDrive(input);
+                driveAmount = savedDrive;
+            }
 
-            // Dry/wet mix
-            float output = drySignal * (1.0f - dryWetMix) + input * dryWetMix;
+            // Dry/wet mix (with modulation)
+            float output = drySignal * (1.0f - modulatedMix) + input * modulatedMix;
 
             buffer.setSample(ch, sample, output);
         }
@@ -230,6 +344,7 @@ void DualCoreDSP::setFilter1Frequency(float freqHz)
 
 void DualCoreDSP::setFilter1Resonance(float resonance)
 {
+    filter1BaseReso = resonance;
     filter1L.resonance = resonance;
     filter1R.resonance = resonance;
     filter1L.updateCoefficients(sampleRate);
@@ -253,6 +368,7 @@ void DualCoreDSP::setFilter2Frequency(float freqHz)
 
 void DualCoreDSP::setFilter2Resonance(float resonance)
 {
+    filter2BaseReso = resonance;
     filter2L.resonance = resonance;
     filter2R.resonance = resonance;
     filter2L.updateCoefficients(sampleRate);
@@ -302,6 +418,7 @@ void DualCoreDSP::setEnvSensitivity(float sens)
 
 void DualCoreDSP::setLFORate(float hz)
 {
+    lfoBaseRate = hz;
     lfo.setRate(hz, sampleRate);
 }
 
@@ -318,6 +435,32 @@ void DualCoreDSP::setLFOWaveform(LFOWaveform wave)
 void DualCoreDSP::setLFOTarget(int target)
 {
     lfoTarget = juce::jlimit(0, 2, target);
+}
+
+void DualCoreDSP::setLFO2Rate(float hz)
+{
+    lfo2BaseRate = hz;
+    lfo2.setRate(hz, sampleRate);
+}
+
+void DualCoreDSP::setLFO2Depth(float depth)
+{
+    lfo2Depth = depth;
+}
+
+void DualCoreDSP::setLFO2Waveform(LFOWaveform wave)
+{
+    lfo2.waveform = wave;
+}
+
+void DualCoreDSP::setModSlot(int slotIndex, ModSource source, ModDestination dest, float amount)
+{
+    if (slotIndex >= 0 && slotIndex < NUM_MOD_SLOTS)
+    {
+        modSlots[slotIndex].source = source;
+        modSlots[slotIndex].destination = dest;
+        modSlots[slotIndex].amount = juce::jlimit(-1.0f, 1.0f, amount);
+    }
 }
 
 void DualCoreDSP::setAMAmount(float amount)

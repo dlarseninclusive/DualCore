@@ -88,11 +88,19 @@ private:
     static constexpr const char* ENV_AMOUNT_ID = "envAmount";
     static constexpr const char* ENV_SENS_ID = "envSens";
 
-    // LFO
+    // LFO1
     static constexpr const char* LFO_RATE_ID = "lfoRate";
     static constexpr const char* LFO_DEPTH_ID = "lfoDepth";
     static constexpr const char* LFO_WAVE_ID = "lfoWave";
     static constexpr const char* LFO_TARGET_ID = "lfoTarget";
+
+    // LFO2
+    static constexpr const char* LFO2_RATE_ID = "lfo2Rate";
+    static constexpr const char* LFO2_DEPTH_ID = "lfo2Depth";
+    static constexpr const char* LFO2_WAVE_ID = "lfo2Wave";
+
+    // Modulation Matrix (6 slots)
+    // Parameters are named: modSource1, modDest1, modAmount1, etc.
 
     // AM
     static constexpr const char* AM_AMOUNT_ID = "amAmount";

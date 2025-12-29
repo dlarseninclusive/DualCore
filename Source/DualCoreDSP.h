@@ -2,6 +2,7 @@
 
 #include <juce_dsp/juce_dsp.h>
 #include <cmath>
+#include <array>
 
 // DualCore Filter DSP - Dual multimode filters with modulation
 class DualCoreDSP
@@ -33,6 +34,40 @@ public:
         Hard,          // Hard clipping
         Fuzz           // Aggressive fuzz/distortion
     };
+
+    // Modulation Matrix
+    enum class ModSource
+    {
+        None = 0,
+        LFO1,
+        LFO2,
+        Envelope,
+        InputFollower
+    };
+
+    enum class ModDestination
+    {
+        None = 0,
+        Filter1Freq,
+        Filter1Reso,
+        Filter2Freq,
+        Filter2Reso,
+        FMAmount,
+        DriveAmount,
+        LFO1Rate,
+        LFO2Rate,
+        Mix,
+        AMAmount
+    };
+
+    struct ModulationSlot
+    {
+        ModSource source = ModSource::None;
+        ModDestination destination = ModDestination::None;
+        float amount = 0.0f;  // -1.0 to 1.0 (bipolar)
+    };
+
+    static constexpr int NUM_MOD_SLOTS = 6;
 
     DualCoreDSP() = default;
 
@@ -67,11 +102,19 @@ public:
     void setEnvAmount(float amount);  // -1.0 to 1.0 (can invert)
     void setEnvSensitivity(float sens);  // Input sensitivity for triggering
 
-    // === LFO -> Filter Frequency ===
+    // === LFO1 -> Filter Frequency ===
     void setLFORate(float hz);
     void setLFODepth(float depth);  // 0.0 to 1.0
     void setLFOWaveform(LFOWaveform wave);
     void setLFOTarget(int target);  // 0=Filter1, 1=Filter2, 2=Both
+
+    // === LFO2 ===
+    void setLFO2Rate(float hz);
+    void setLFO2Depth(float depth);
+    void setLFO2Waveform(LFOWaveform wave);
+
+    // === Modulation Matrix ===
+    void setModSlot(int slotIndex, ModSource source, ModDestination dest, float amount);
 
     // === AM (Amplitude Modulation from Filter 2) ===
     void setAMAmount(float amount);  // 0.0 to 1.0
@@ -185,10 +228,14 @@ private:
     SVFilter filter2L, filter2R;
     ADSREnvelope adsrEnv;
     LFO lfo;
+    LFO lfo2;
     EnvelopeFollower inputEnvFollower;
     EnvelopeFollower amEnvFollower;
     ShelfFilter hiBoostL, hiBoostR;
     ShelfFilter hiCutL, hiCutR;
+
+    // Modulation Matrix
+    std::array<ModulationSlot, NUM_MOD_SLOTS> modSlots;
 
     // Parameters
     float inputGain = 1.0f;
@@ -197,14 +244,20 @@ private:
     bool limiterEnabled = false;
 
     float filter1BaseFreq = 1000.0f;
+    float filter1BaseReso = 0.5f;
     float filter2BaseFreq = 2000.0f;
+    float filter2BaseReso = 0.5f;
 
     float fmAmount = 0.0f;
     float envAmount = 0.0f;
     float envSensitivity = 0.5f;
 
     float lfoDepth = 0.0f;
+    float lfoBaseRate = 1.0f;
     int lfoTarget = 2;  // Both filters
+
+    float lfo2Depth = 0.0f;
+    float lfo2BaseRate = 1.0f;
 
     float amAmount = 0.0f;
 

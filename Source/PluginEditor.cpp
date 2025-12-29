@@ -43,7 +43,7 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
     setupSlider(envAmountSlider, envAmountLabel, "AMT");
     setupSlider(envSensSlider, envSensLabel, "SENS");
 
-    // === LFO ===
+    // === LFO1 ===
     setupSlider(lfoRateSlider, lfoRateLabel, "RATE");
     setupSlider(lfoDepthSlider, lfoDepthLabel, "DEPTH");
 
@@ -59,6 +59,41 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
     lfoTargetBox.addItem("F2", 2);
     lfoTargetBox.addItem("Both", 3);
     addAndMakeVisible(lfoTargetBox);
+
+    // === LFO2 ===
+    setupSlider(lfo2RateSlider, lfo2RateLabel, "RATE");
+    setupSlider(lfo2DepthSlider, lfo2DepthLabel, "DEPTH");
+
+    lfo2WaveBox.addItem("Sine", 1);
+    lfo2WaveBox.addItem("Tri", 2);
+    lfo2WaveBox.addItem("Sqr", 3);
+    lfo2WaveBox.addItem("Saw+", 4);
+    lfo2WaveBox.addItem("Saw-", 5);
+    lfo2WaveBox.addItem("Rnd", 6);
+    addAndMakeVisible(lfo2WaveBox);
+
+    // === Modulation Matrix ===
+    juce::StringArray modSources{"None", "LFO1", "LFO2", "Env", "Input"};
+    juce::StringArray modDests{"None", "F1 Freq", "F1 Reso", "F2 Freq", "F2 Reso",
+                               "FM", "Drive", "LFO1 Rate", "LFO2 Rate", "Mix", "AM"};
+
+    for (int i = 0; i < 6; ++i)
+    {
+        auto& slot = modSlotUIs[i];
+
+        for (const auto& src : modSources)
+            slot.sourceBox.addItem(src, slot.sourceBox.getNumItems() + 1);
+        addAndMakeVisible(slot.sourceBox);
+
+        for (const auto& dst : modDests)
+            slot.destBox.addItem(dst, slot.destBox.getNumItems() + 1);
+        addAndMakeVisible(slot.destBox);
+
+        slot.amountSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+        slot.amountSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 40, 16);
+        slot.amountSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xff00aaff));
+        addAndMakeVisible(slot.amountSlider);
+    }
 
     // === AM ===
     setupSlider(amAmountSlider, amAmountLabel, "AM");
@@ -146,6 +181,25 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
         audioProcessor.apvts, "lfoWave", lfoWaveBox);
     lfoTargetAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         audioProcessor.apvts, "lfoTarget", lfoTargetBox);
+
+    lfo2RateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        audioProcessor.apvts, "lfo2Rate", lfo2RateSlider);
+    lfo2DepthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        audioProcessor.apvts, "lfo2Depth", lfo2DepthSlider);
+    lfo2WaveAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        audioProcessor.apvts, "lfo2Wave", lfo2WaveBox);
+
+    // Modulation Matrix Attachments
+    for (int i = 0; i < 6; ++i)
+    {
+        juce::String slotNum(i + 1);
+        modSlotAttachments[i].sourceAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+            audioProcessor.apvts, "modSource" + slotNum, modSlotUIs[i].sourceBox);
+        modSlotAttachments[i].destAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+            audioProcessor.apvts, "modDest" + slotNum, modSlotUIs[i].destBox);
+        modSlotAttachments[i].amountAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            audioProcessor.apvts, "modAmount" + slotNum, modSlotUIs[i].amountSlider);
+    }
 
     amAmountAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "amAmount", amAmountSlider);
@@ -255,16 +309,20 @@ void DualCoreAudioProcessorEditor::paint(juce::Graphics& g)
     drawSection(630, 50, 90, 180, "DRIVE");
     drawSection(730, 50, 160, 180, "ROUTING");
 
-    // Row 2: ADSR, LFO, AM
-    drawSection(10, 240, 380, 160, "ENVELOPE");
-    drawSection(400, 240, 250, 160, "LFO");
-    drawSection(660, 240, 230, 160, "AM");
+    // Row 2: ADSR, LFO1, LFO2, AM
+    drawSection(10, 240, 300, 160, "ENVELOPE");
+    drawSection(320, 240, 170, 160, "LFO1");
+    drawSection(500, 240, 170, 160, "LFO2");
+    drawSection(680, 240, 210, 160, "AM");
 
-    // Row 3: Meters
-    drawSection(10, 410, 880, 80, "OUTPUT");
+    // Row 3: Modulation Matrix
+    drawSection(10, 410, 880, 110, "MODULATION MATRIX");
+
+    // Row 4: Meters
+    drawSection(10, 530, 880, 80, "OUTPUT");
 
     // Draw meters
-    float meterY = 445.0f * s;
+    float meterY = 565.0f * s;
     float meterH = 30.0f * s;
 
     // Input meters
@@ -384,7 +442,7 @@ void DualCoreAudioProcessorEditor::resized()
     envReleaseLabel.setBounds(x, row2Y, smallKnob, labelH);
     envReleaseSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
-    x += smallKnob + margin * 2;
+    x += smallKnob + margin;
     envAmountLabel.setBounds(x, row2Y, smallKnob, labelH);
     envAmountSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
@@ -392,8 +450,8 @@ void DualCoreAudioProcessorEditor::resized()
     envSensLabel.setBounds(x, row2Y, smallKnob, labelH);
     envSensSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
-    // LFO section
-    x = static_cast<int>(420 * s);
+    // LFO1 section
+    x = static_cast<int>(330 * s);
     lfoRateLabel.setBounds(x, row2Y, smallKnob, labelH);
     lfoRateSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
@@ -402,11 +460,22 @@ void DualCoreAudioProcessorEditor::resized()
     lfoDepthSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
     int comboY = row2Y + labelH + smallKnob + margin;
-    lfoWaveBox.setBounds(static_cast<int>(420 * s), comboY, static_cast<int>(100 * s), comboH);
-    lfoTargetBox.setBounds(static_cast<int>(530 * s), comboY, static_cast<int>(80 * s), comboH);
+    lfoWaveBox.setBounds(static_cast<int>(330 * s), comboY, static_cast<int>(75 * s), comboH);
+    lfoTargetBox.setBounds(static_cast<int>(410 * s), comboY, static_cast<int>(60 * s), comboH);
+
+    // LFO2 section
+    x = static_cast<int>(510 * s);
+    lfo2RateLabel.setBounds(x, row2Y, smallKnob, labelH);
+    lfo2RateSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
+
+    x += smallKnob + margin;
+    lfo2DepthLabel.setBounds(x, row2Y, smallKnob, labelH);
+    lfo2DepthSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
+
+    lfo2WaveBox.setBounds(static_cast<int>(510 * s), comboY, static_cast<int>(140 * s), comboH);
 
     // AM section
-    x = static_cast<int>(680 * s);
+    x = static_cast<int>(700 * s);
     amAmountLabel.setBounds(x, row2Y, smallKnob, labelH);
     amAmountSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
@@ -417,6 +486,29 @@ void DualCoreAudioProcessorEditor::resized()
     x += smallKnob + margin;
     amReleaseLabel.setBounds(x, row2Y, smallKnob, labelH);
     amReleaseSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
+
+    // Row 3: Modulation Matrix
+    int row3Y = static_cast<int>(430 * s);
+    int slotWidth = static_cast<int>(280 * s);
+    int slotSpacing = static_cast<int>(10 * s);
+    int srcComboW = static_cast<int>(55 * s);
+    int dstComboW = static_cast<int>(70 * s);
+    int amtSliderW = static_cast<int>(130 * s);
+    int slotH = static_cast<int>(26 * s);
+
+    for (int i = 0; i < 6; ++i)
+    {
+        int col = i % 3;
+        int row = i / 3;
+
+        int slotX = static_cast<int>(20 * s) + col * (slotWidth + slotSpacing);
+        int slotY = row3Y + row * (slotH + static_cast<int>(6 * s));
+
+        auto& slot = modSlotUIs[i];
+        slot.sourceBox.setBounds(slotX, slotY, srcComboW, comboH);
+        slot.destBox.setBounds(slotX + srcComboW + 4, slotY, dstComboW, comboH);
+        slot.amountSlider.setBounds(slotX + srcComboW + dstComboW + 8, slotY, amtSliderW, comboH);
+    }
 }
 
 void DualCoreAudioProcessorEditor::refreshPresetList()
