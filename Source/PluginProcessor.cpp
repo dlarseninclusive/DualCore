@@ -174,6 +174,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualCoreAudioProcessor::crea
         juce::StringArray{"Filter 1", "Filter 2", "Both"},
         2));
 
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{LFO_SYNC_ID, 1},
+        "LFO1 Sync",
+        false));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{LFO_DIV_ID, 1},
+        "LFO1 Division",
+        juce::StringArray{"4/1", "2/1", "1/1", "1/2", "1/4", "1/8", "1/16", "1/32",
+                          "1/2T", "1/4T", "1/8T", "1/16T", "1/2D", "1/4D", "1/8D", "1/16D"},
+        4));  // Default 1/4 note
+
     // === LFO2 ===
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{LFO2_RATE_ID, 1},
@@ -196,6 +208,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualCoreAudioProcessor::crea
         "LFO2 Waveform",
         juce::StringArray{"Sine", "Triangle", "Square", "Saw Up", "Saw Down", "Random"},
         0));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{LFO2_SYNC_ID, 1},
+        "LFO2 Sync",
+        false));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{LFO2_DIV_ID, 1},
+        "LFO2 Division",
+        juce::StringArray{"4/1", "2/1", "1/1", "1/2", "1/4", "1/8", "1/16", "1/32",
+                          "1/2T", "1/4T", "1/8T", "1/16T", "1/2D", "1/4D", "1/8D", "1/16D"},
+        4));
 
     // === Modulation Matrix (6 slots) ===
     juce::StringArray modSources{"None", "LFO1", "LFO2", "Envelope", "Input"};
@@ -371,12 +395,18 @@ void DualCoreAudioProcessor::updateDSPFromParameters()
     dualCoreDSP.setLFOWaveform(static_cast<DualCoreDSP::LFOWaveform>(
         static_cast<int>(*apvts.getRawParameterValue(LFO_WAVE_ID))));
     dualCoreDSP.setLFOTarget(static_cast<int>(*apvts.getRawParameterValue(LFO_TARGET_ID)));
+    dualCoreDSP.setLFODivision(static_cast<DualCoreDSP::NoteDivision>(
+        static_cast<int>(*apvts.getRawParameterValue(LFO_DIV_ID))));
+    dualCoreDSP.setLFOSync(*apvts.getRawParameterValue(LFO_SYNC_ID) > 0.5f);
 
     // LFO2
     dualCoreDSP.setLFO2Rate(*apvts.getRawParameterValue(LFO2_RATE_ID));
     dualCoreDSP.setLFO2Depth(*apvts.getRawParameterValue(LFO2_DEPTH_ID));
     dualCoreDSP.setLFO2Waveform(static_cast<DualCoreDSP::LFOWaveform>(
         static_cast<int>(*apvts.getRawParameterValue(LFO2_WAVE_ID))));
+    dualCoreDSP.setLFO2Division(static_cast<DualCoreDSP::NoteDivision>(
+        static_cast<int>(*apvts.getRawParameterValue(LFO2_DIV_ID))));
+    dualCoreDSP.setLFO2Sync(*apvts.getRawParameterValue(LFO2_SYNC_ID) > 0.5f);
 
     // Modulation Matrix
     for (int i = 1; i <= 6; ++i)
@@ -412,6 +442,16 @@ void DualCoreAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                            juce::MidiBuffer& /*midiMessages*/)
 {
     juce::ScopedNoDenormals noDenormals;
+
+    // Get BPM from host
+    if (auto* playHead = getPlayHead())
+    {
+        if (auto position = playHead->getPosition())
+        {
+            if (auto bpm = position->getBpm())
+                dualCoreDSP.setHostBPM(*bpm);
+        }
+    }
 
     updateDSPFromParameters();
 

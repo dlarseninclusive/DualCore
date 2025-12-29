@@ -60,6 +60,26 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
     lfoTargetBox.addItem("Both", 3);
     addAndMakeVisible(lfoTargetBox);
 
+    setupToggle(lfoSyncButton, "SYNC");
+
+    lfoDivBox.addItem("4/1", 1);
+    lfoDivBox.addItem("2/1", 2);
+    lfoDivBox.addItem("1/1", 3);
+    lfoDivBox.addItem("1/2", 4);
+    lfoDivBox.addItem("1/4", 5);
+    lfoDivBox.addItem("1/8", 6);
+    lfoDivBox.addItem("1/16", 7);
+    lfoDivBox.addItem("1/32", 8);
+    lfoDivBox.addItem("1/2T", 9);
+    lfoDivBox.addItem("1/4T", 10);
+    lfoDivBox.addItem("1/8T", 11);
+    lfoDivBox.addItem("1/16T", 12);
+    lfoDivBox.addItem("1/2D", 13);
+    lfoDivBox.addItem("1/4D", 14);
+    lfoDivBox.addItem("1/8D", 15);
+    lfoDivBox.addItem("1/16D", 16);
+    addAndMakeVisible(lfoDivBox);
+
     // === LFO2 ===
     setupSlider(lfo2RateSlider, lfo2RateLabel, "RATE");
     setupSlider(lfo2DepthSlider, lfo2DepthLabel, "DEPTH");
@@ -71,6 +91,26 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
     lfo2WaveBox.addItem("Saw-", 5);
     lfo2WaveBox.addItem("Rnd", 6);
     addAndMakeVisible(lfo2WaveBox);
+
+    setupToggle(lfo2SyncButton, "SYNC");
+
+    lfo2DivBox.addItem("4/1", 1);
+    lfo2DivBox.addItem("2/1", 2);
+    lfo2DivBox.addItem("1/1", 3);
+    lfo2DivBox.addItem("1/2", 4);
+    lfo2DivBox.addItem("1/4", 5);
+    lfo2DivBox.addItem("1/8", 6);
+    lfo2DivBox.addItem("1/16", 7);
+    lfo2DivBox.addItem("1/32", 8);
+    lfo2DivBox.addItem("1/2T", 9);
+    lfo2DivBox.addItem("1/4T", 10);
+    lfo2DivBox.addItem("1/8T", 11);
+    lfo2DivBox.addItem("1/16T", 12);
+    lfo2DivBox.addItem("1/2D", 13);
+    lfo2DivBox.addItem("1/4D", 14);
+    lfo2DivBox.addItem("1/8D", 15);
+    lfo2DivBox.addItem("1/16D", 16);
+    addAndMakeVisible(lfo2DivBox);
 
     // === Modulation Matrix ===
     juce::StringArray modSources{"None", "LFO1", "LFO2", "Env", "Input"};
@@ -181,6 +221,10 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
         audioProcessor.apvts, "lfoWave", lfoWaveBox);
     lfoTargetAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         audioProcessor.apvts, "lfoTarget", lfoTargetBox);
+    lfoSyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        audioProcessor.apvts, "lfoSync", lfoSyncButton);
+    lfoDivAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        audioProcessor.apvts, "lfoDiv", lfoDivBox);
 
     lfo2RateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "lfo2Rate", lfo2RateSlider);
@@ -188,6 +232,10 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
         audioProcessor.apvts, "lfo2Depth", lfo2DepthSlider);
     lfo2WaveAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         audioProcessor.apvts, "lfo2Wave", lfo2WaveBox);
+    lfo2SyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        audioProcessor.apvts, "lfo2Sync", lfo2SyncButton);
+    lfo2DivAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        audioProcessor.apvts, "lfo2Div", lfo2DivBox);
 
     // Modulation Matrix Attachments
     for (int i = 0; i < 6; ++i)
@@ -463,6 +511,10 @@ void DualCoreAudioProcessorEditor::resized()
     lfoWaveBox.setBounds(static_cast<int>(330 * s), comboY, static_cast<int>(75 * s), comboH);
     lfoTargetBox.setBounds(static_cast<int>(410 * s), comboY, static_cast<int>(60 * s), comboH);
 
+    int syncY = comboY + comboH + 4;
+    lfoSyncButton.setBounds(static_cast<int>(330 * s), syncY, static_cast<int>(50 * s), buttonH);
+    lfoDivBox.setBounds(static_cast<int>(385 * s), syncY, static_cast<int>(80 * s), comboH);
+
     // LFO2 section
     x = static_cast<int>(510 * s);
     lfo2RateLabel.setBounds(x, row2Y, smallKnob, labelH);
@@ -473,6 +525,9 @@ void DualCoreAudioProcessorEditor::resized()
     lfo2DepthSlider.setBounds(x, row2Y + labelH, smallKnob, smallKnob);
 
     lfo2WaveBox.setBounds(static_cast<int>(510 * s), comboY, static_cast<int>(140 * s), comboH);
+
+    lfo2SyncButton.setBounds(static_cast<int>(510 * s), syncY, static_cast<int>(50 * s), buttonH);
+    lfo2DivBox.setBounds(static_cast<int>(565 * s), syncY, static_cast<int>(80 * s), comboH);
 
     // AM section
     x = static_cast<int>(700 * s);

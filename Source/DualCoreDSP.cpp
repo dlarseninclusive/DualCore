@@ -453,6 +453,110 @@ void DualCoreDSP::setLFO2Waveform(LFOWaveform wave)
     lfo2.waveform = wave;
 }
 
+void DualCoreDSP::setLFOSync(bool sync)
+{
+    lfoSyncEnabled = sync;
+    if (sync)
+    {
+        // Recalculate rate from BPM and division
+        setLFODivision(lfoDivision);
+    }
+    else
+    {
+        // Restore free-running rate
+        lfo.setRate(lfoBaseRate, sampleRate);
+    }
+}
+
+void DualCoreDSP::setLFODivision(NoteDivision div)
+{
+    lfoDivision = div;
+    if (lfoSyncEnabled)
+    {
+        // Calculate rate from BPM and note division
+        // Quarter note = 1 beat, so 1/4 note frequency = BPM/60
+        float quarterNoteHz = static_cast<float>(hostBPM) / 60.0f;
+        float rate = quarterNoteHz;
+
+        switch (div)
+        {
+            case NoteDivision::Div_4_1:  rate = quarterNoteHz / 16.0f; break;  // 4 bars
+            case NoteDivision::Div_2_1:  rate = quarterNoteHz / 8.0f;  break;  // 2 bars
+            case NoteDivision::Div_1_1:  rate = quarterNoteHz / 4.0f;  break;  // 1 bar
+            case NoteDivision::Div_1_2:  rate = quarterNoteHz / 2.0f;  break;
+            case NoteDivision::Div_1_4:  rate = quarterNoteHz;         break;
+            case NoteDivision::Div_1_8:  rate = quarterNoteHz * 2.0f;  break;
+            case NoteDivision::Div_1_16: rate = quarterNoteHz * 4.0f;  break;
+            case NoteDivision::Div_1_32: rate = quarterNoteHz * 8.0f;  break;
+            case NoteDivision::Div_1_2T: rate = quarterNoteHz / 2.0f * 1.5f;  break;  // Triplet
+            case NoteDivision::Div_1_4T: rate = quarterNoteHz * 1.5f;         break;
+            case NoteDivision::Div_1_8T: rate = quarterNoteHz * 2.0f * 1.5f;  break;
+            case NoteDivision::Div_1_16T: rate = quarterNoteHz * 4.0f * 1.5f; break;
+            case NoteDivision::Div_1_2D: rate = quarterNoteHz / 2.0f / 1.5f;  break;  // Dotted
+            case NoteDivision::Div_1_4D: rate = quarterNoteHz / 1.5f;         break;
+            case NoteDivision::Div_1_8D: rate = quarterNoteHz * 2.0f / 1.5f;  break;
+            case NoteDivision::Div_1_16D: rate = quarterNoteHz * 4.0f / 1.5f; break;
+        }
+
+        lfo.setRate(rate, sampleRate);
+    }
+}
+
+void DualCoreDSP::setLFO2Sync(bool sync)
+{
+    lfo2SyncEnabled = sync;
+    if (sync)
+    {
+        setLFO2Division(lfo2Division);
+    }
+    else
+    {
+        lfo2.setRate(lfo2BaseRate, sampleRate);
+    }
+}
+
+void DualCoreDSP::setLFO2Division(NoteDivision div)
+{
+    lfo2Division = div;
+    if (lfo2SyncEnabled)
+    {
+        float quarterNoteHz = static_cast<float>(hostBPM) / 60.0f;
+        float rate = quarterNoteHz;
+
+        switch (div)
+        {
+            case NoteDivision::Div_4_1:  rate = quarterNoteHz / 16.0f; break;
+            case NoteDivision::Div_2_1:  rate = quarterNoteHz / 8.0f;  break;
+            case NoteDivision::Div_1_1:  rate = quarterNoteHz / 4.0f;  break;
+            case NoteDivision::Div_1_2:  rate = quarterNoteHz / 2.0f;  break;
+            case NoteDivision::Div_1_4:  rate = quarterNoteHz;         break;
+            case NoteDivision::Div_1_8:  rate = quarterNoteHz * 2.0f;  break;
+            case NoteDivision::Div_1_16: rate = quarterNoteHz * 4.0f;  break;
+            case NoteDivision::Div_1_32: rate = quarterNoteHz * 8.0f;  break;
+            case NoteDivision::Div_1_2T: rate = quarterNoteHz / 2.0f * 1.5f;  break;
+            case NoteDivision::Div_1_4T: rate = quarterNoteHz * 1.5f;         break;
+            case NoteDivision::Div_1_8T: rate = quarterNoteHz * 2.0f * 1.5f;  break;
+            case NoteDivision::Div_1_16T: rate = quarterNoteHz * 4.0f * 1.5f; break;
+            case NoteDivision::Div_1_2D: rate = quarterNoteHz / 2.0f / 1.5f;  break;
+            case NoteDivision::Div_1_4D: rate = quarterNoteHz / 1.5f;         break;
+            case NoteDivision::Div_1_8D: rate = quarterNoteHz * 2.0f / 1.5f;  break;
+            case NoteDivision::Div_1_16D: rate = quarterNoteHz * 4.0f / 1.5f; break;
+        }
+
+        lfo2.setRate(rate, sampleRate);
+    }
+}
+
+void DualCoreDSP::setHostBPM(double bpm)
+{
+    hostBPM = juce::jlimit(20.0, 300.0, bpm);
+    // Update synced LFOs
+    if (lfoSyncEnabled)
+        setLFODivision(lfoDivision);
+    if (lfo2SyncEnabled)
+        setLFO2Division(lfo2Division);
+}
+
 void DualCoreDSP::setModSlot(int slotIndex, ModSource source, ModDestination dest, float amount)
 {
     if (slotIndex >= 0 && slotIndex < NUM_MOD_SLOTS)

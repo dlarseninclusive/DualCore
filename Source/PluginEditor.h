@@ -73,6 +73,8 @@ private:
     juce::ComboBox lfoTargetBox;
     juce::Label lfoRateLabel;
     juce::Label lfoDepthLabel;
+    juce::ToggleButton lfoSyncButton;
+    juce::ComboBox lfoDivBox;
 
     // === LFO2 ===
     juce::Slider lfo2RateSlider;
@@ -80,6 +82,8 @@ private:
     juce::ComboBox lfo2WaveBox;
     juce::Label lfo2RateLabel;
     juce::Label lfo2DepthLabel;
+    juce::ToggleButton lfo2SyncButton;
+    juce::ComboBox lfo2DivBox;
 
     // === Modulation Matrix ===
     struct ModSlotUI
@@ -142,10 +146,14 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lfoDepthAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> lfoWaveAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> lfoTargetAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> lfoSyncAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> lfoDivAttachment;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lfo2RateAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lfo2DepthAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> lfo2WaveAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> lfo2SyncAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> lfo2DivAttachment;
 
     // Modulation Matrix Attachments
     struct ModSlotAttachments

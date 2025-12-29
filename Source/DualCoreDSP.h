@@ -26,6 +26,26 @@ public:
         Random
     };
 
+    enum class NoteDivision
+    {
+        Div_4_1 = 0,   // 4 bars
+        Div_2_1,       // 2 bars
+        Div_1_1,       // 1 bar
+        Div_1_2,       // 1/2
+        Div_1_4,       // 1/4 (quarter note)
+        Div_1_8,       // 1/8
+        Div_1_16,      // 1/16
+        Div_1_32,      // 1/32
+        Div_1_2T,      // 1/2 triplet
+        Div_1_4T,      // 1/4 triplet
+        Div_1_8T,      // 1/8 triplet
+        Div_1_16T,     // 1/16 triplet
+        Div_1_2D,      // 1/2 dotted
+        Div_1_4D,      // 1/4 dotted
+        Div_1_8D,      // 1/8 dotted
+        Div_1_16D      // 1/16 dotted
+    };
+
     enum class DriveType
     {
         Soft = 0,      // Gentle tanh saturation
@@ -107,11 +127,18 @@ public:
     void setLFODepth(float depth);  // 0.0 to 1.0
     void setLFOWaveform(LFOWaveform wave);
     void setLFOTarget(int target);  // 0=Filter1, 1=Filter2, 2=Both
+    void setLFOSync(bool sync);
+    void setLFODivision(NoteDivision div);
 
     // === LFO2 ===
     void setLFO2Rate(float hz);
     void setLFO2Depth(float depth);
     void setLFO2Waveform(LFOWaveform wave);
+    void setLFO2Sync(bool sync);
+    void setLFO2Division(NoteDivision div);
+
+    // === Host Tempo ===
+    void setHostBPM(double bpm);
 
     // === Modulation Matrix ===
     void setModSlot(int slotIndex, ModSource source, ModDestination dest, float amount);
@@ -255,9 +282,15 @@ private:
     float lfoDepth = 0.0f;
     float lfoBaseRate = 1.0f;
     int lfoTarget = 2;  // Both filters
+    bool lfoSyncEnabled = false;
+    NoteDivision lfoDivision = NoteDivision::Div_1_4;
 
     float lfo2Depth = 0.0f;
     float lfo2BaseRate = 1.0f;
+    bool lfo2SyncEnabled = false;
+    NoteDivision lfo2Division = NoteDivision::Div_1_4;
+
+    double hostBPM = 120.0;
 
     float amAmount = 0.0f;
 

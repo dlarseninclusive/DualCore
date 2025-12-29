@@ -94,10 +94,16 @@ private:
     static constexpr const char* LFO_WAVE_ID = "lfoWave";
     static constexpr const char* LFO_TARGET_ID = "lfoTarget";
 
+    // LFO1 Sync
+    static constexpr const char* LFO_SYNC_ID = "lfoSync";
+    static constexpr const char* LFO_DIV_ID = "lfoDiv";
+
     // LFO2
     static constexpr const char* LFO2_RATE_ID = "lfo2Rate";
     static constexpr const char* LFO2_DEPTH_ID = "lfo2Depth";
     static constexpr const char* LFO2_WAVE_ID = "lfo2Wave";
+    static constexpr const char* LFO2_SYNC_ID = "lfo2Sync";
+    static constexpr const char* LFO2_DIV_ID = "lfo2Div";
 
     // Modulation Matrix (6 slots)
     // Parameters are named: modSource1, modDest1, modAmount1, etc.
