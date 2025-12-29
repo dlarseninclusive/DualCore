@@ -57,6 +57,7 @@ public:
     void savePreset(const juce::String& name);
     void loadPreset(const juce::File& presetFile);
     juce::StringArray getPresetList();
+    static void installFactoryPresets();
 
 private:
     DualCoreDSP dualCoreDSP;

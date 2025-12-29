@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "BinaryData.h"
 
 DualCoreAudioProcessor::DualCoreAudioProcessor()
     : AudioProcessor(BusesProperties()
@@ -7,6 +8,7 @@ DualCoreAudioProcessor::DualCoreAudioProcessor()
                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "Parameters", createParameterLayout())
 {
+    installFactoryPresets();
 }
 
 DualCoreAudioProcessor::~DualCoreAudioProcessor()
@@ -554,6 +556,42 @@ juce::StringArray DualCoreAudioProcessor::getPresetList()
     }
 
     return presets;
+}
+
+void DualCoreAudioProcessor::installFactoryPresets()
+{
+    ensurePresetsFolderExists();
+    auto folder = getPresetsFolder();
+
+    // Factory preset data pairs: {name, BinaryData pointer, size}
+    struct PresetData
+    {
+        const char* name;
+        const char* data;
+        int size;
+    };
+
+    PresetData presets[] = {
+        {"Clean Filter Sweep", BinaryData::Clean_Filter_Sweep_dcpreset, BinaryData::Clean_Filter_Sweep_dcpresetSize},
+        {"Resonant Acid", BinaryData::Resonant_Acid_dcpreset, BinaryData::Resonant_Acid_dcpresetSize},
+        {"Synced Wobble", BinaryData::Synced_Wobble_dcpreset, BinaryData::Synced_Wobble_dcpresetSize},
+        {"Dirty FM", BinaryData::Dirty_FM_dcpreset, BinaryData::Dirty_FM_dcpresetSize},
+        {"Parallel Notch", BinaryData::Parallel_Notch_dcpreset, BinaryData::Parallel_Notch_dcpresetSize},
+        {"Tape Warmth", BinaryData::Tape_Warmth_dcpreset, BinaryData::Tape_Warmth_dcpresetSize},
+        {"Dynamic Input", BinaryData::Dynamic_Input_dcpreset, BinaryData::Dynamic_Input_dcpresetSize},
+        {"Rhythmic Gate", BinaryData::Rhythmic_Gate_dcpreset, BinaryData::Rhythmic_Gate_dcpresetSize}
+    };
+
+    for (const auto& preset : presets)
+    {
+        auto file = folder.getChildFile(juce::String(preset.name) + ".dcpreset");
+
+        // Only install if preset doesn't already exist (don't overwrite user modifications)
+        if (!file.existsAsFile())
+        {
+            file.replaceWithData(preset.data, static_cast<size_t>(preset.size));
+        }
+    }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

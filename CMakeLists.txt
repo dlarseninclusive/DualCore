@@ -42,6 +42,18 @@ target_sources(DualCore PRIVATE
     Source/DualCoreDSP.h
 )
 
+# Add factory presets as binary data
+juce_add_binary_data(FactoryPresets SOURCES
+    Presets/Clean\ Filter\ Sweep.dcpreset
+    Presets/Resonant\ Acid.dcpreset
+    Presets/Synced\ Wobble.dcpreset
+    Presets/Dirty\ FM.dcpreset
+    Presets/Parallel\ Notch.dcpreset
+    Presets/Tape\ Warmth.dcpreset
+    Presets/Dynamic\ Input.dcpreset
+    Presets/Rhythmic\ Gate.dcpreset
+)
+
 target_compile_definitions(DualCore PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
@@ -49,6 +61,7 @@ target_compile_definitions(DualCore PUBLIC
 )
 
 target_link_libraries(DualCore PRIVATE
+    FactoryPresets
     juce::juce_audio_utils
     juce::juce_audio_processors
     juce::juce_dsp
