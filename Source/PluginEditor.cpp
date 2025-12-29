@@ -6,6 +6,7 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
 {
     setLookAndFeel(&customLookAndFeel);
     currentScale = audioProcessor.uiScale.load();
+    customLookAndFeel.setScale(currentScale);
 
     // === Input Section ===
     setupSlider(inputGainSlider, inputGainLabel, "INPUT");
@@ -305,6 +306,9 @@ void DualCoreAudioProcessorEditor::setUIScale(float scale)
 {
     currentScale = juce::jlimit(0.7f, 2.0f, scale);
     audioProcessor.uiScale.store(currentScale);
+
+    // Update LookAndFeel scale for popup menus and other elements
+    customLookAndFeel.setScale(currentScale);
 
     int width = static_cast<int>(BASE_WIDTH * currentScale);
     int height = static_cast<int>(BASE_HEIGHT * currentScale);

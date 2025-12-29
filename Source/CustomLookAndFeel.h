@@ -29,10 +29,19 @@ public:
 
     juce::Font getComboBoxFont(juce::ComboBox& box) override;
     juce::Font getLabelFont(juce::Label& label) override;
+    juce::Font getPopupMenuFont() override;
+    juce::Font getTextButtonFont(juce::TextButton& button, int buttonHeight) override;
+    juce::Font getAlertWindowTitleFont() override;
+    juce::Font getAlertWindowMessageFont() override;
+    juce::Font getAlertWindowFont() override;
+
+    void setScale(float scale) { currentScale = scale; }
+    float getScale() const { return currentScale; }
 
 private:
     juce::Colour accentColour;
     juce::Colour backgroundColour;
     juce::Colour darkColour;
     juce::Colour lightColour;
+    float currentScale = 1.0f;
 };
