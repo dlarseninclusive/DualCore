@@ -1,6 +1,8 @@
 # DualCore
 
-A dual multimode filter VST3 plugin with extensive modulation capabilities, built with JUCE.
+A dual multimode filter VST3 plugin with extensive modulation capabilities, built with JUCE. Inspired by the Sherman Filterbank.
+
+![DualCore Screenshot](docs/screenshot.png)
 
 ## Features
 
@@ -11,10 +13,17 @@ A dual multimode filter VST3 plugin with extensive modulation capabilities, buil
 - **Routing**: Series or Parallel configuration
 
 ### Modulation
-- **FM**: Filter 1 output modulates Filter 2 frequency
+- **6-Slot Modulation Matrix**: Flexible routing with bipolar amounts
+- **LFO1 & LFO2**: Dual LFOs with 6 waveforms each (Sine, Triangle, Square, Saw Up, Saw Down, Random)
 - **ADSR Envelope**: Input-triggered envelope with Attack, Decay, Sustain, Release
-- **LFO**: 6 waveforms (Sine, Triangle, Square, Saw Up, Saw Down, Random)
+- **Input Follower**: Envelope follower for dynamic modulation
+- **FM**: Filter 1 output modulates Filter 2 frequency
 - **AM**: Amplitude modulation from filter output
+
+### Drive
+- 5 saturation modes: Soft, Tube, Tape, Hard, Fuzz
+- Pre or post-filter positioning
+- 2x oversampling to reduce aliasing
 
 ### Input Section
 - Input gain control (-12dB to +24dB)
