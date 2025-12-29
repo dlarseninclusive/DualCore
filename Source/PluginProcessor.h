@@ -99,6 +99,11 @@ private:
     static constexpr const char* AM_ATTACK_ID = "amAttack";
     static constexpr const char* AM_RELEASE_ID = "amRelease";
 
+    // Drive
+    static constexpr const char* DRIVE_AMOUNT_ID = "driveAmount";
+    static constexpr const char* DRIVE_TYPE_ID = "driveType";
+    static constexpr const char* DRIVE_PRE_POST_ID = "drivePrePost";
+
     // Routing
     static constexpr const char* ROUTING_ID = "routing";
     static constexpr const char* MIX_ID = "mix";

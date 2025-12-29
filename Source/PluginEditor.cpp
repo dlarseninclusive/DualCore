@@ -65,6 +65,18 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
     setupSlider(amAttackSlider, amAttackLabel, "A");
     setupSlider(amReleaseSlider, amReleaseLabel, "R");
 
+    // === Drive ===
+    setupSlider(driveAmountSlider, driveAmountLabel, "DRIVE");
+
+    driveTypeBox.addItem("Soft", 1);
+    driveTypeBox.addItem("Tube", 2);
+    driveTypeBox.addItem("Tape", 3);
+    driveTypeBox.addItem("Hard", 4);
+    driveTypeBox.addItem("Fuzz", 5);
+    addAndMakeVisible(driveTypeBox);
+
+    setupToggle(drivePrePostButton, "POST");
+
     // === Routing ===
     setupToggle(routingButton, "PARALLEL");
     setupSlider(mixSlider, mixLabel, "MIX");
@@ -141,6 +153,13 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
         audioProcessor.apvts, "amAttack", amAttackSlider);
     amReleaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "amRelease", amReleaseSlider);
+
+    driveAmountAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        audioProcessor.apvts, "driveAmount", driveAmountSlider);
+    driveTypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        audioProcessor.apvts, "driveType", driveTypeBox);
+    drivePrePostAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        audioProcessor.apvts, "drivePrePost", drivePrePostButton);
 
     routingAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         audioProcessor.apvts, "routing", routingButton);
@@ -228,12 +247,13 @@ void DualCoreAudioProcessorEditor::paint(juce::Graphics& g)
         g.drawText(title, rect.removeFromTop(18.0f * s), juce::Justification::centred);
     };
 
-    // Row 1: Input, Filter 1, Filter 2
+    // Row 1: Input, Filter 1, Filter 2, FM, Drive, Routing
     drawSection(10, 50, 130, 180, "INPUT");
-    drawSection(150, 50, 200, 180, "FILTER 1");
-    drawSection(360, 50, 200, 180, "FILTER 2");
-    drawSection(570, 50, 80, 180, "FM");
-    drawSection(660, 50, 230, 180, "ROUTING");
+    drawSection(150, 50, 190, 180, "FILTER 1");
+    drawSection(350, 50, 190, 180, "FILTER 2");
+    drawSection(550, 50, 70, 180, "FM");
+    drawSection(630, 50, 90, 180, "DRIVE");
+    drawSection(730, 50, 160, 180, "ROUTING");
 
     // Row 2: ADSR, LFO, AM
     drawSection(10, 240, 380, 160, "ENVELOPE");
@@ -310,10 +330,10 @@ void DualCoreAudioProcessorEditor::resized()
     filter1ResoLabel.setBounds(x, row1Y, knob, labelH);
     filter1ResoSlider.setBounds(x, row1Y + labelH, knob, knob);
 
-    filter1ModeBox.setBounds(static_cast<int>(160 * s), row1Y + labelH + knob + margin, static_cast<int>(180 * s), comboH);
+    filter1ModeBox.setBounds(static_cast<int>(160 * s), row1Y + labelH + knob + margin, static_cast<int>(170 * s), comboH);
 
     // Filter 2 section
-    x = static_cast<int>(370 * s);
+    x = static_cast<int>(360 * s);
     filter2FreqLabel.setBounds(x, row1Y, knob, labelH);
     filter2FreqSlider.setBounds(x, row1Y + labelH, knob, knob);
 
@@ -321,15 +341,24 @@ void DualCoreAudioProcessorEditor::resized()
     filter2ResoLabel.setBounds(x, row1Y, knob, labelH);
     filter2ResoSlider.setBounds(x, row1Y + labelH, knob, knob);
 
-    filter2ModeBox.setBounds(static_cast<int>(370 * s), row1Y + labelH + knob + margin, static_cast<int>(180 * s), comboH);
+    filter2ModeBox.setBounds(static_cast<int>(360 * s), row1Y + labelH + knob + margin, static_cast<int>(170 * s), comboH);
 
     // FM section
-    x = static_cast<int>(580 * s);
+    x = static_cast<int>(560 * s);
     fmAmountLabel.setBounds(x, row1Y, knob, labelH);
     fmAmountSlider.setBounds(x, row1Y + labelH, knob, knob);
 
+    // Drive section
+    x = static_cast<int>(640 * s);
+    driveAmountLabel.setBounds(x, row1Y, knob, labelH);
+    driveAmountSlider.setBounds(x, row1Y + labelH, knob, knob);
+
+    int driveComboY = row1Y + labelH + knob + margin;
+    driveTypeBox.setBounds(static_cast<int>(640 * s), driveComboY, static_cast<int>(70 * s), comboH);
+    drivePrePostButton.setBounds(static_cast<int>(640 * s), driveComboY + comboH + 4, static_cast<int>(70 * s), buttonH);
+
     // Routing section
-    x = static_cast<int>(680 * s);
+    x = static_cast<int>(740 * s);
     routingButton.setBounds(x, row1Y, static_cast<int>(100 * s), buttonH);
 
     mixLabel.setBounds(x, row1Y + buttonH + margin, knob, labelH);

@@ -25,6 +25,15 @@ public:
         Random
     };
 
+    enum class DriveType
+    {
+        Soft = 0,      // Gentle tanh saturation
+        Tube,          // Asymmetric tube-style
+        Tape,          // Tape saturation with compression
+        Hard,          // Hard clipping
+        Fuzz           // Aggressive fuzz/distortion
+    };
+
     DualCoreDSP() = default;
 
     void prepare(double sampleRate, int samplesPerBlock);
@@ -68,6 +77,11 @@ public:
     void setAMAmount(float amount);  // 0.0 to 1.0
     void setAMAttack(float ms);
     void setAMRelease(float ms);
+
+    // === Drive/Saturation ===
+    void setDriveAmount(float amount);     // 0.0 to 1.0
+    void setDriveType(DriveType type);
+    void setDrivePrePost(bool post);       // false = pre-filter, true = post-filter
 
     // === Routing ===
     void setFilterRouting(bool parallel);  // true = parallel, false = series
@@ -154,9 +168,17 @@ private:
         void reset();
     };
 
-    // Soft clipping
-    float saturate(float input, float drive);
+    // Saturation/Drive processing
+    float processDrive(float input);
+    float saturateSoft(float input, float drive);
+    float saturateTube(float input, float drive);
+    float saturateTape(float input, float drive);
+    float saturateHard(float input, float drive);
+    float saturateFuzz(float input, float drive);
     float softLimit(float input);
+
+    // Oversampling
+    std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
 
     // DSP components
     SVFilter filter1L, filter1R;
@@ -185,6 +207,10 @@ private:
     int lfoTarget = 2;  // Both filters
 
     float amAmount = 0.0f;
+
+    float driveAmount = 0.0f;
+    DriveType driveType = DriveType::Soft;
+    bool drivePost = true;  // Post-filter by default
 
     bool parallelRouting = false;
     float dryWetMix = 1.0f;

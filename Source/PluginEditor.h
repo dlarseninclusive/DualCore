@@ -82,6 +82,12 @@ private:
     juce::Label amAttackLabel;
     juce::Label amReleaseLabel;
 
+    // === Drive ===
+    juce::Slider driveAmountSlider;
+    juce::Label driveAmountLabel;
+    juce::ComboBox driveTypeBox;
+    juce::ToggleButton drivePrePostButton;
+
     // === Routing ===
     juce::ToggleButton routingButton;
     juce::Slider mixSlider;
@@ -124,6 +130,10 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> amAmountAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> amAttackAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> amReleaseAttachment;
+
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> driveAmountAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> driveTypeAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> drivePrePostAttachment;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> routingAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;

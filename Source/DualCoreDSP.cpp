@@ -1,9 +1,18 @@
 #include "DualCoreDSP.h"
 #include <random>
 
-void DualCoreDSP::prepare(double newSampleRate, int /*samplesPerBlock*/)
+void DualCoreDSP::prepare(double newSampleRate, int samplesPerBlock)
 {
     sampleRate = newSampleRate;
+
+    // Initialize 2x oversampling for drive section
+    oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
+        2,  // numChannels
+        1,  // oversampling factor (2^1 = 2x)
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
+        true  // isMaxQuality
+    );
+    oversampling->initProcessing(static_cast<size_t>(samplesPerBlock));
 
     // Initialize filters
     filter1L.updateCoefficients(sampleRate);
@@ -51,6 +60,9 @@ void DualCoreDSP::reset()
     hiCutR.reset();
     envTriggered = false;
     lastInputLevel = 0.0f;
+
+    if (oversampling)
+        oversampling->reset();
 }
 
 void DualCoreDSP::process(juce::AudioBuffer<float>& buffer)
@@ -106,6 +118,10 @@ void DualCoreDSP::process(juce::AudioBuffer<float>& buffer)
                 input = (ch == 0) ? hiCutL.process(input) : hiCutR.process(input);
             if (limiterEnabled)
                 input = softLimit(input);
+
+            // Pre-filter drive
+            if (!drivePost && driveAmount > 0.0f)
+                input = processDrive(input);
 
             // Get the appropriate filter instances
             SVFilter& f1 = (ch == 0) ? filter1L : filter1R;
@@ -168,6 +184,10 @@ void DualCoreDSP::process(juce::AudioBuffer<float>& buffer)
                 float amGain = 1.0f - (amAmount * (1.0f - amEnv));
                 input *= amGain;
             }
+
+            // Post-filter drive
+            if (drivePost && driveAmount > 0.0f)
+                input = processDrive(input);
 
             // Dry/wet mix
             float output = drySignal * (1.0f - dryWetMix) + input * dryWetMix;
@@ -325,15 +345,117 @@ void DualCoreDSP::setDryWetMix(float wet)
     dryWetMix = wet;
 }
 
-// === Utility Functions ===
-
-float DualCoreDSP::saturate(float input, float drive)
+void DualCoreDSP::setDriveAmount(float amount)
 {
-    if (drive <= 1.0f)
-        return input;
+    driveAmount = juce::jlimit(0.0f, 1.0f, amount);
+}
 
+void DualCoreDSP::setDriveType(DriveType type)
+{
+    driveType = type;
+}
+
+void DualCoreDSP::setDrivePrePost(bool post)
+{
+    drivePost = post;
+}
+
+// === Saturation/Drive Functions ===
+
+float DualCoreDSP::processDrive(float input)
+{
+    // Scale drive amount to useful range (1.0 to 20.0)
+    float drive = 1.0f + driveAmount * 19.0f;
+
+    switch (driveType)
+    {
+        case DriveType::Soft:  return saturateSoft(input, drive);
+        case DriveType::Tube:  return saturateTube(input, drive);
+        case DriveType::Tape:  return saturateTape(input, drive);
+        case DriveType::Hard:  return saturateHard(input, drive);
+        case DriveType::Fuzz:  return saturateFuzz(input, drive);
+        default: return saturateSoft(input, drive);
+    }
+}
+
+float DualCoreDSP::saturateSoft(float input, float drive)
+{
+    // Gentle tanh saturation with drive compensation
     float x = input * drive;
-    return std::tanh(x) / std::tanh(drive);
+    float output = std::tanh(x);
+    // Compensate for volume loss at low drive
+    return output * (1.0f / std::tanh(drive));
+}
+
+float DualCoreDSP::saturateTube(float input, float drive)
+{
+    // Asymmetric tube-style saturation
+    // Positive half gets more compression than negative
+    float x = input * drive;
+
+    if (x >= 0.0f)
+    {
+        // Soft clip positive (tube compression)
+        float output = 1.0f - std::exp(-x);
+        return output * 0.9f;  // Slight reduction
+    }
+    else
+    {
+        // Harder clip on negative (tube asymmetry)
+        float output = -1.0f + std::exp(x);
+        return output * 1.1f;  // Slight boost for grit
+    }
+}
+
+float DualCoreDSP::saturateTape(float input, float drive)
+{
+    // Tape saturation with soft compression and subtle harmonics
+    float x = input * drive;
+
+    // Soft saturation curve
+    float output = x / (1.0f + std::abs(x));
+
+    // Add subtle odd harmonics (tape characteristic)
+    float harmonic = 0.1f * std::sin(x * 3.0f) / (1.0f + std::abs(x * 3.0f));
+    output += harmonic * (drive - 1.0f) / 19.0f;
+
+    // Tape compression feel
+    return output * 1.2f;
+}
+
+float DualCoreDSP::saturateHard(float input, float drive)
+{
+    // Hard clipping with slight rounding
+    float x = input * drive;
+
+    // Hard clip at +-1 with tiny soft knee
+    if (x > 0.95f)
+        return 0.95f + 0.05f * std::tanh((x - 0.95f) * 10.0f);
+    else if (x < -0.95f)
+        return -0.95f + 0.05f * std::tanh((x + 0.95f) * 10.0f);
+    else
+        return x;
+}
+
+float DualCoreDSP::saturateFuzz(float input, float drive)
+{
+    // Aggressive fuzz with octave-up harmonics
+    float x = input * drive;
+
+    // Rectification for octave-up effect
+    float rectified = std::abs(x) * 0.3f;
+
+    // Aggressive clipping
+    float clipped = std::tanh(x * 2.0f);
+
+    // Combine with some of the rectified signal
+    float output = clipped * 0.7f + rectified * std::tanh(x);
+
+    // Add grit
+    if (std::abs(output) > 0.1f)
+        output += 0.05f * std::sin(output * 10.0f);
+
+    return juce::jlimit(-1.0f, 1.0f, output);
 }
 
 float DualCoreDSP::softLimit(float input)

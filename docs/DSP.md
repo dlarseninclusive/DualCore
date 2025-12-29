@@ -10,6 +10,9 @@ DualCore uses a dual state-variable filter architecture with extensive modulatio
 Input -> Input Gain -> [Hi Boost] -> [Hi Cut] -> [Limiter]
                                                      |
                                                      v
+                                          [Drive PRE-FILTER]
+                                                     |
+                                                     v
                               +--------------------+
                               |   Filter Routing   |
                               |  (Series/Parallel) |
@@ -34,6 +37,9 @@ Input -> Input Gain -> [Hi Boost] -> [Hi Cut] -> [Limiter]
            +---------------------+------------------------+
                                  |
                                  v
+                         [Drive POST-FILTER]
+                                 |
+                                 v
                           [AM Modulation]
                                  |
                                  v
@@ -42,6 +48,8 @@ Input -> Input Gain -> [Hi Boost] -> [Hi Cut] -> [Limiter]
                                  v
                               Output
 ```
+
+Note: Drive stage position (pre/post filter) is selectable via the POST toggle.
 
 ## Filter Implementation
 
@@ -109,6 +117,27 @@ if (|input| > threshold)
     output = threshold + knee * tanh((|input| - threshold) / knee)
 ```
 
+## Drive/Saturation
+
+The drive stage provides five saturation algorithms, selectable for pre- or post-filter positioning. All processing uses 2x oversampling to reduce aliasing artifacts.
+
+### Drive Types
+
+| Type | Character | Algorithm |
+|------|-----------|-----------|
+| **Soft** | Gentle warmth | `tanh(input * drive)` - smooth symmetric clipping |
+| **Tube** | Asymmetric warmth | Asymmetric soft clipping with even harmonics |
+| **Tape** | Vintage compression | Tape-style saturation with soft compression |
+| **Hard** | Aggressive edge | Hard clipping at threshold |
+| **Fuzz** | Extreme distortion | Waveshaping with aggressive harmonic content |
+
+### Oversampling
+
+2x polyphase IIR oversampling is applied during drive processing to reduce aliasing:
+- Upsample input signal
+- Apply saturation at higher sample rate
+- Downsample with anti-aliasing filter
+
 ## Parameters
 
 | Parameter | Range | Default | Description |
@@ -125,4 +154,7 @@ if (|input| > threshold)
 | LFO Rate | 0.01 to 20 Hz | 1 Hz | LFO frequency |
 | LFO Depth | 0 to 1 | 0 | LFO modulation depth |
 | AM Amount | 0 to 1 | 0 | Amplitude modulation depth |
+| Drive Amount | 0 to 1 | 0 | Saturation intensity |
+| Drive Type | Soft/Tube/Tape/Hard/Fuzz | Soft | Saturation algorithm |
+| Drive Post | On/Off | On | Pre or post-filter position |
 | Mix | 0 to 100% | 100% | Dry/wet mix |

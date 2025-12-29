@@ -201,6 +201,24 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualCoreAudioProcessor::crea
         [](float value, int) { return juce::String(value, 0) + " ms"; },
         nullptr));
 
+    // === Drive ===
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{DRIVE_AMOUNT_ID, 1},
+        "Drive Amount",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+        0.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{DRIVE_TYPE_ID, 1},
+        "Drive Type",
+        juce::StringArray{"Soft", "Tube", "Tape", "Hard", "Fuzz"},
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{DRIVE_PRE_POST_ID, 1},
+        "Drive Post-Filter",
+        true));
+
     // === Routing ===
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         juce::ParameterID{ROUTING_ID, 1},
@@ -303,6 +321,12 @@ void DualCoreAudioProcessor::updateDSPFromParameters()
     dualCoreDSP.setAMAmount(*apvts.getRawParameterValue(AM_AMOUNT_ID));
     dualCoreDSP.setAMAttack(*apvts.getRawParameterValue(AM_ATTACK_ID));
     dualCoreDSP.setAMRelease(*apvts.getRawParameterValue(AM_RELEASE_ID));
+
+    // Drive
+    dualCoreDSP.setDriveAmount(*apvts.getRawParameterValue(DRIVE_AMOUNT_ID));
+    dualCoreDSP.setDriveType(static_cast<DualCoreDSP::DriveType>(
+        static_cast<int>(*apvts.getRawParameterValue(DRIVE_TYPE_ID))));
+    dualCoreDSP.setDrivePrePost(*apvts.getRawParameterValue(DRIVE_PRE_POST_ID) > 0.5f);
 
     // Routing
     dualCoreDSP.setFilterRouting(*apvts.getRawParameterValue(ROUTING_ID) > 0.5f);
