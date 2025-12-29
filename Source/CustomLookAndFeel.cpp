@@ -229,35 +229,35 @@ void DualCoreLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& 
 
 juce::Font DualCoreLookAndFeel::getComboBoxFont(juce::ComboBox& box)
 {
-    return juce::FontOptions(juce::jmin(14.0f * currentScale, static_cast<float>(box.getHeight()) * 0.7f));
+    return juce::FontOptions(juce::jmin(16.0f * currentScale, static_cast<float>(box.getHeight()) * 0.75f));
 }
 
 juce::Font DualCoreLookAndFeel::getLabelFont(juce::Label& label)
 {
-    return juce::FontOptions(juce::jmin(12.0f * currentScale, static_cast<float>(label.getHeight()) * 0.9f));
+    return juce::FontOptions(juce::jmin(14.0f * currentScale, static_cast<float>(label.getHeight()) * 0.95f));
 }
 
 juce::Font DualCoreLookAndFeel::getPopupMenuFont()
 {
-    return juce::FontOptions(14.0f * currentScale);
+    return juce::FontOptions(16.0f * currentScale);
 }
 
 juce::Font DualCoreLookAndFeel::getTextButtonFont(juce::TextButton& button, int buttonHeight)
 {
-    return juce::FontOptions(juce::jmin(14.0f * currentScale, static_cast<float>(buttonHeight) * 0.6f));
+    return juce::FontOptions(juce::jmin(15.0f * currentScale, static_cast<float>(buttonHeight) * 0.65f));
 }
 
 juce::Font DualCoreLookAndFeel::getAlertWindowTitleFont()
 {
-    return juce::FontOptions(18.0f * currentScale).withStyle("Bold");
+    return juce::FontOptions(20.0f * currentScale).withStyle("Bold");
 }
 
 juce::Font DualCoreLookAndFeel::getAlertWindowMessageFont()
 {
-    return juce::FontOptions(14.0f * currentScale);
+    return juce::FontOptions(16.0f * currentScale);
 }
 
 juce::Font DualCoreLookAndFeel::getAlertWindowFont()
 {
-    return juce::FontOptions(14.0f * currentScale);
+    return juce::FontOptions(16.0f * currentScale);
 }
