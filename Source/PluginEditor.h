@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.h"
+#include "CustomLookAndFeel.h"
 
 class DualCoreAudioProcessorEditor : public juce::AudioProcessorEditor,
                                       private juce::Timer
@@ -21,6 +22,7 @@ private:
     void setupToggle(juce::ToggleButton& button, const juce::String& text);
 
     DualCoreAudioProcessor& audioProcessor;
+    DualCoreLookAndFeel customLookAndFeel;
 
     // Base dimensions
     static constexpr int BASE_WIDTH = 900;

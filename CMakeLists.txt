@@ -40,6 +40,8 @@ target_sources(DualCore PRIVATE
     Source/PluginEditor.h
     Source/DualCoreDSP.cpp
     Source/DualCoreDSP.h
+    Source/CustomLookAndFeel.cpp
+    Source/CustomLookAndFeel.h
 )
 
 # Add factory presets as binary data

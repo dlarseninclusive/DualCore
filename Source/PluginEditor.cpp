@@ -4,6 +4,7 @@
 DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p)
 {
+    setLookAndFeel(&customLookAndFeel);
     currentScale = audioProcessor.uiScale.load();
 
     // === Input Section ===
@@ -276,27 +277,24 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
 DualCoreAudioProcessorEditor::~DualCoreAudioProcessorEditor()
 {
     stopTimer();
+    setLookAndFeel(nullptr);
 }
 
 void DualCoreAudioProcessorEditor::setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 16);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xff00aaff));
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xff333355));
+    slider.setTextValueSuffix("");
     addAndMakeVisible(slider);
 
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.8f));
     addAndMakeVisible(label);
 }
 
 void DualCoreAudioProcessorEditor::setupToggle(juce::ToggleButton& button, const juce::String& text)
 {
     button.setButtonText(text);
-    button.setColour(juce::ToggleButton::textColourId, juce::Colours::white.withAlpha(0.8f));
-    button.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xff00aaff));
     addAndMakeVisible(button);
 }
 
