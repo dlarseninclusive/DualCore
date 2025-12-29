@@ -42,6 +42,8 @@ target_sources(DualCore PRIVATE
     Source/DualCoreDSP.h
     Source/CustomLookAndFeel.cpp
     Source/CustomLookAndFeel.h
+    Source/FilterResponseDisplay.cpp
+    Source/FilterResponseDisplay.h
 )
 
 # Add factory presets as binary data

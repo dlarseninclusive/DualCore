@@ -157,6 +157,9 @@ DualCoreAudioProcessorEditor::DualCoreAudioProcessorEditor(DualCoreAudioProcesso
     setupToggle(routingButton, "PARALLEL");
     setupSlider(mixSlider, mixLabel, "MIX");
 
+    // === Filter Response Display ===
+    addAndMakeVisible(filterResponseDisplay);
+
     // === Preset Browser ===
     presetBox.setTextWhenNothingSelected("-- Presets --");
     presetBox.onChange = [this] { loadSelectedPreset(); };
@@ -314,6 +317,22 @@ void DualCoreAudioProcessorEditor::timerCallback()
     inputLevelR = audioProcessor.inputLevelR.load();
     outputLevelL = audioProcessor.outputLevelL.load();
     outputLevelR = audioProcessor.outputLevelR.load();
+
+    // Update filter response display
+    float f1Freq = *audioProcessor.apvts.getRawParameterValue("filter1Freq");
+    float f1Reso = *audioProcessor.apvts.getRawParameterValue("filter1Reso");
+    int f1Mode = static_cast<int>(*audioProcessor.apvts.getRawParameterValue("filter1Mode"));
+
+    float f2Freq = *audioProcessor.apvts.getRawParameterValue("filter2Freq");
+    float f2Reso = *audioProcessor.apvts.getRawParameterValue("filter2Reso");
+    int f2Mode = static_cast<int>(*audioProcessor.apvts.getRawParameterValue("filter2Mode"));
+
+    bool parallel = *audioProcessor.apvts.getRawParameterValue("routing") > 0.5f;
+
+    filterResponseDisplay.setFilter1Parameters(f1Freq, f1Reso, f1Mode);
+    filterResponseDisplay.setFilter2Parameters(f2Freq, f2Reso, f2Mode);
+    filterResponseDisplay.setParallelMode(parallel);
+
     repaint();
 }
 
@@ -562,6 +581,10 @@ void DualCoreAudioProcessorEditor::resized()
         slot.destBox.setBounds(slotX + srcComboW + 4, slotY, dstComboW, comboH);
         slot.amountSlider.setBounds(slotX + srcComboW + dstComboW + 8, slotY, amtSliderW, comboH);
     }
+
+    // Row 4: Output section - filter response display
+    int row4Y = static_cast<int>(540 * s);
+    filterResponseDisplay.setBounds(static_cast<int>(500 * s), row4Y, static_cast<int>(380 * s), static_cast<int>(60 * s));
 }
 
 void DualCoreAudioProcessorEditor::refreshPresetList()

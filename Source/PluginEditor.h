@@ -4,6 +4,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.h"
 #include "CustomLookAndFeel.h"
+#include "FilterResponseDisplay.h"
 
 class DualCoreAudioProcessorEditor : public juce::AudioProcessorEditor,
                                       private juce::Timer
@@ -114,6 +115,9 @@ private:
     juce::ToggleButton routingButton;
     juce::Slider mixSlider;
     juce::Label mixLabel;
+
+    // === Filter Response Display ===
+    FilterResponseDisplay filterResponseDisplay;
 
     // === Preset Browser ===
     juce::ComboBox presetBox;
