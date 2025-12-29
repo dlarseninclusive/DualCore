@@ -303,7 +303,7 @@ void DualCoreAudioProcessorEditor::setupToggle(juce::ToggleButton& button, const
 
 void DualCoreAudioProcessorEditor::setUIScale(float scale)
 {
-    currentScale = juce::jlimit(0.7f, 1.5f, scale);
+    currentScale = juce::jlimit(0.7f, 2.0f, scale);
     audioProcessor.uiScale.store(currentScale);
 
     int width = static_cast<int>(BASE_WIDTH * currentScale);
